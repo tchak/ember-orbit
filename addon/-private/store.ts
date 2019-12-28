@@ -18,6 +18,7 @@ import Cache from './cache';
 import Model from './model';
 import ModelFactory from './model-factory';
 import normalizeRecordProperties from './utils/normalize-record-properties';
+import { markTypeAsLoaded } from './strategy';
 
 const { deprecate } = Orbit;
 
@@ -128,6 +129,7 @@ export default class Store {
       this.source.queryBuilder
     );
     const result = await this.source.query(query);
+    markTypeAsLoaded(this.source.cache, query);
     return this.cache.lookup(result);
   }
 

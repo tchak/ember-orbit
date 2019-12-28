@@ -51,6 +51,8 @@ export default {
   }
 };
 <% } else if (type === 'request') { %>
+import { cacheStrategyFilter as filter, cacheStrategyBlocking as blocking } from 'ember-orbit';
+
 export default {
   create() {
     return new <%= strategyClass %>({
@@ -92,7 +94,7 @@ export default {
        * `filter` will be invoked in the context of this strategy (and thus will
        * have access to both `this.source` and `this.target`).
        */
-      // filter(...args) {};
+      filter,
 
       /**
        * Should results returned from calling `action` on the `target` source be
@@ -117,7 +119,7 @@ export default {
        * invoked in the context of this strategy (and thus will have access to
        * both `this.source` and `this.target`).
        */
-      blocking: true
+      blocking
     });
   }
 };
