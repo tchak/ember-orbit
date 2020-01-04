@@ -5,22 +5,26 @@ module('Unit - Model', function(hooks) {
   let Planet: any, Moon: any, Star: any;
 
   hooks.beforeEach(function() {
-    Planet = Model.extend({
-      name: attr('string'),
-      classification: attr('string'),
-      sun: hasOne('star'),
-      moons: hasMany('moon')
-    });
+    class PlanetClass extends Model {
+      @attr('string') name;
+      @attr('string') classification;
+      @hasOne('star') sun;
+      @hasMany('moon') moons;
+    }
 
-    Moon = Model.extend({
-      name: attr('string'),
-      planet: hasOne('planet')
-    });
+    class MoonClass extends Model {
+      @attr('string') name;
+      @hasOne('planet') planet;
+    }
 
-    Star = Model.extend({
-      name: attr('string'),
-      planets: hasMany('planet')
-    });
+    class StarClass extends Model {
+      @attr('string') name;
+      @hasMany('planet') planets;
+    }
+
+    Planet = PlanetClass;
+    Moon = MoonClass;
+    Star = StarClass;
   });
 
   hooks.afterEach(function() {
@@ -44,9 +48,11 @@ module('Unit - Model', function(hooks) {
   test('#keys returns defined custom secondary keys', function(assert) {
     var keys, names;
 
-    Planet.reopen({
-      remoteId: key()
-    });
+    class PlanetClass extends Planet {
+      @key() remoteId;
+    }
+
+    Planet = PlanetClass;
 
     keys = Planet.keys;
     names = Object.keys(keys);
