@@ -1,10 +1,12 @@
 import { tracked } from '@glimmer/tracking';
-import { Dict } from '@orbit/utils';
 
 import Model from '../model';
 import { isFieldDescriptor } from '../utils/decorators';
 
-export default function hasMany(type: string, options: Dict<unknown> = {}) {
+export default function hasMany(
+  type: string,
+  options: Record<string, unknown> = {}
+) {
   const trackedHasMany = (
     target: any,
     key: string,
@@ -20,7 +22,7 @@ export default function hasMany(type: string, options: Dict<unknown> = {}) {
     let defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {
-      let value = record.getRelatedRecords(key);
+      let value = record.hasMany(key).value;
       defaultAssigned.add(record);
       return originalSet!.call(record, value);
     }

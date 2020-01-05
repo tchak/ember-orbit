@@ -109,7 +109,9 @@ export class FindRecordsQueryBuilder<M extends Model = Model>
   }
 }
 
-export class FindRelatedRecordQueryBuilder extends FindRelatedRecordTerm {
+export class FindRelatedRecordQueryBuilder<M extends Model = Model>
+  extends FindRelatedRecordTerm
+  implements PromiseLike<M> {
   store: Store;
   _options = {};
 
@@ -123,8 +125,11 @@ export class FindRelatedRecordQueryBuilder extends FindRelatedRecordTerm {
     return this;
   }
 
-  then(...args: any[]): Promise<Model> {
-    return this._promise.then(...args);
+  then<T = M>(
+    onfullfiled?: null | ((value: any) => T | PromiseLike<T>),
+    onrejected?: null | ((reason: any) => PromiseLike<never>)
+  ): Promise<T> {
+    return this._promise.then<T>(onfullfiled, onrejected);
   }
 
   catch(cb: any) {
@@ -147,7 +152,9 @@ export class FindRelatedRecordQueryBuilder extends FindRelatedRecordTerm {
   }
 }
 
-export class FindRelatedRecordsQueryBuilder extends FindRelatedRecordsTerm {
+export class FindRelatedRecordsQueryBuilder<M extends Model = Model>
+  extends FindRelatedRecordsTerm
+  implements PromiseLike<M[]> {
   store: Store;
   _options = {};
   _live = false;
@@ -167,8 +174,11 @@ export class FindRelatedRecordsQueryBuilder extends FindRelatedRecordsTerm {
     return this;
   }
 
-  then(...args: any[]): Promise<Model[]> {
-    return this._promise.then(...args);
+  then<T = M[]>(
+    onfullfiled?: null | ((value: any) => T | PromiseLike<T>),
+    onrejected?: null | ((reason: any) => PromiseLike<never>)
+  ): Promise<T> {
+    return this._promise.then<T>(onfullfiled, onrejected);
   }
 
   catch(cb: any) {
@@ -192,7 +202,7 @@ export class FindRelatedRecordsQueryBuilder extends FindRelatedRecordsTerm {
     ) as Model[];
   }
 
-  private get _promise() {
+  private get _promise(): Promise<M[]> {
     return this.store
       .query(this.toQueryExpression(), this._options)
       .then(result => {

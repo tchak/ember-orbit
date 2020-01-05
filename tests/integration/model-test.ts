@@ -125,7 +125,7 @@ module('Integration - Model', function(hooks) {
       name: 'Callisto'
     });
 
-    await jupiter.moons.pushObject(callisto);
+    await jupiter.hasMany('moons').add(callisto);
 
     assert.ok(jupiter.moons.includes(callisto), 'added record to hasMany');
     assert.equal(callisto.planet, jupiter, 'updated inverse');
@@ -141,8 +141,8 @@ module('Integration - Model', function(hooks) {
       name: 'Callisto'
     });
 
-    await jupiter.moons.pushObject(callisto);
-    await jupiter.moons.removeObject(callisto);
+    await jupiter.hasMany('moons').add(callisto);
+    await jupiter.hasMany('moons').remove(callisto);
 
     assert.ok(!jupiter.moons.includes(callisto), 'removed record from hasMany');
     assert.ok(!callisto.planet, 'updated inverse');
@@ -258,6 +258,12 @@ module('Integration - Model', function(hooks) {
   });
 
   test('#replaceAttribute', async function(assert) {
+    const record = await store.addRecord({ type: 'planet', name: 'Jupiter' });
+    await record.replaceAttribute('name', 'Jupiter2');
+    assert.equal(record.getAttribute('name'), 'Jupiter2');
+  });
+
+  test('#replaceAttribute', async function(assert) {
     const record = await store.addRecord<Planet>({
       type: 'planet',
       name: 'Jupiter'
@@ -281,27 +287,28 @@ module('Integration - Model', function(hooks) {
     assert.ok(!cache.identityMap.has(identifier), 'removed from identity map');
   });
 
-  test('#getRelatedRecord / #replaceRelatedRecord', async function(assert) {
+  test('#hasOne', async function(assert) {
     const jupiter = await store.addRecord<Planet>({
       type: 'planet',
       name: 'Jupiter'
     });
     const sun = await store.addRecord<Star>({ type: 'star', name: 'Sun' });
 
-    assert.strictEqual(jupiter.sun, undefined);
-    assert.strictEqual(jupiter.getRelatedRecord('sun'), undefined);
+    assert.strictEqual(jupiter.sun, null);
+    assert.strictEqual(jupiter.hasOne('sun').value, null);
 
-    await jupiter.replaceRelatedRecord('sun', sun);
+    await jupiter.hasOne('sun').replace(sun);
 
     assert.strictEqual(jupiter.sun, sun);
-    assert.strictEqual(jupiter.getRelatedRecord('sun'), sun);
+    assert.strictEqual(jupiter.hasOne('sun').value, sun);
+    assert.strictEqual(await jupiter.hasOne('sun').query(), sun);
 
-    await jupiter.replaceRelatedRecord('sun', null);
+    await jupiter.hasOne('sun').replace(null);
     assert.strictEqual(jupiter.sun, null);
-    assert.strictEqual(jupiter.getRelatedRecord('sun'), null);
+    assert.strictEqual(jupiter.hasOne('sun').value, null);
   });
 
-  test('#getRelatedRecords always returns the same LiveQuery', async function(assert) {
+  test('#hasMany always returns the same relationship', async function(assert) {
     const callisto = await store.addRecord<Moon>({
       type: 'moon',
       name: 'Callisto'
@@ -318,62 +325,58 @@ module('Integration - Model', function(hooks) {
       [callisto],
       'moons relationship has been added'
     );
-    assert.strictEqual(
+    assert.deepEqual(
       jupiter.moons,
-      jupiter.getRelatedRecords('moons'),
-      'getRelatedRecords returns the expected LiveQuery'
+      jupiter.hasMany('moons').value,
+      'hasMany().value returns the expected array'
+    );
+    assert.deepEqual(
+      jupiter.moons,
+      await jupiter.hasMany('moons').query(),
+      'hasMany().query() returns the expected array'
     );
     assert.strictEqual(
-      jupiter.getRelatedRecords('moons'),
-      jupiter.getRelatedRecords('moons'),
-      'getRelatedRecords does not create additional LiveQueries'
+      jupiter.moons,
+      jupiter.moons,
+      'hasMany attribute does not create additional arrays'
     );
   });
 
-  // test('#addToRelatedRecords', async function(assert) {
-  //   const jupiter = await store.addRecord<Planet>({
-  //     type: 'planet',
-  //     name: 'Jupiter'
-  //   });
-  //   const europa = await store.addRecord<Moon>({
-  //     type: 'moon',
-  //     name: 'Europa'
-  //   });
-  //   const io = await store.addRecord<Moon>({ type: 'moon', name: 'Io' });
+  test('#hasMany().add()', async function(assert) {
+    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
+    const europa = await store.addRecord({ type: 'moon', name: 'Europa' });
+    const io = await store.addRecord({ type: 'moon', name: 'Io' });
 
-  //   assert.deepEqual(jupiter.getRelatedRecords('moons'), undefined);
+    assert.deepEqual(jupiter.hasMany('moons').value, []);
 
-  //   await jupiter.addToRelatedRecords('moons', europa);
+    await jupiter.hasMany('moons').add(europa);
 
-  //   assert.deepEqual(jupiter.getRelatedRecords('moons'), [europa]);
+    assert.deepEqual(jupiter.hasMany('moons').value, [europa]);
 
-  //   await jupiter.addToRelatedRecords('moons', io);
+    await jupiter.hasMany('moons').add(io);
 
-  //   assert.deepEqual(jupiter.getRelatedRecords('moons'), [europa, io]);
-  // });
+    assert.deepEqual(jupiter.hasMany('moons').value, [europa, io]);
+  });
 
-  // test('#removeFromRelatedRecords', async function(assert) {
-  //   const europa = await store.addRecord<Moon>({
-  //     type: 'moon',
-  //     name: 'Europa'
-  //   });
-  //   const io = await store.addRecord<Moon>({ type: 'moon', name: 'Io' });
-  //   const jupiter = await store.addRecord<Planet>({
-  //     type: 'planet',
-  //     name: 'Jupiter',
-  //     moons: [europa, io]
-  //   });
+  test('#hasMany().remove()', async function(assert) {
+    const europa = await store.addRecord({ type: 'moon', name: 'Europa' });
+    const io = await store.addRecord({ type: 'moon', name: 'Io' });
+    const jupiter = await store.addRecord({
+      type: 'planet',
+      name: 'Jupiter',
+      moons: [europa, io]
+    });
 
-  //   assert.deepEqual(jupiter.getRelatedRecords('moons').content, [europa, io]);
+    assert.deepEqual(jupiter.hasMany('moons').value, [europa, io]);
 
-  //   await jupiter.removeFromRelatedRecords('moons', europa);
+    await jupiter.hasMany('moons').remove(europa);
 
-  //   assert.deepEqual(jupiter.getRelatedRecords('moons').content, [io]);
+    assert.deepEqual(jupiter.hasMany('moons').value, [io]);
 
-  //   await jupiter.removeFromRelatedRecords('moons', io);
+    await jupiter.hasMany('moons').remove(io);
 
-  //   assert.deepEqual(jupiter.getRelatedRecords('moons').content, []);
-  // });
+    assert.deepEqual(jupiter.hasMany('moons').value, []);
+  });
 
   test('#update - updates attribute and relationships (with records)', async function(assert) {
     const jupiter = await store.addRecord<Planet>({

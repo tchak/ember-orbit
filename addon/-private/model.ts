@@ -1,17 +1,11 @@
 import 'reflect-metadata';
 import { RecordIdentity, ModelDefinition } from '@orbit/data';
 
-import { notifyPropertyChange } from '@ember/object';
-
-import HasMany from './relationships/has-many';
+import { HasOneRelation, HasManyRelation } from './relations';
 import Store from './store';
 
 export interface ModelSettings {
   identity: RecordIdentity;
-}
-
-interface HasManyContract {
-  invalidate(): void;
 }
 
 export interface ModelInjections {
@@ -20,12 +14,11 @@ export interface ModelInjections {
 }
 
 export default class Model {
-  static _notifiers: Record<string, (instance: Model) => void> = {};
-
   identity!: RecordIdentity;
 
   private _store?: Store;
-  private _relatedRecords: Record<string, HasManyContract> = {};
+  private _hasManyRelations: Record<string, HasManyRelation> = {};
+  private _hasOneRelations: Record<string, HasOneRelation> = {};
 
   constructor(identity: RecordIdentity, store: Store) {
     this.identity = identity;
@@ -59,71 +52,26 @@ export default class Model {
     );
   }
 
-  getRelatedRecord(relationship: string): Model | null | undefined {
-    return this.store.cache.relatedRecord(this.identity, relationship);
-  }
-
-  async replaceRelatedRecord(
-    relationship: string,
-    relatedRecord: Model | null,
-    options?: object
-  ): Promise<void> {
-    await this.store.update(
-      t =>
-        t.replaceRelatedRecord(
-          this.identity,
-          relationship,
-          relatedRecord ? relatedRecord.identity : null
-        ),
-      options
-    );
-  }
-
-  getRelatedRecords(relationship: string) {
-    this._relatedRecords = this._relatedRecords || {};
-
-    if (!this._relatedRecords[relationship]) {
-      this._relatedRecords[relationship] = HasMany.create({
-        getContent: () =>
-          this.store.cache.relatedRecords(this.identity, relationship),
-        addToContent: (record: Model): Promise<void> => {
-          return this.addToRelatedRecords(relationship, record);
-        },
-        removeFromContent: (record: Model): Promise<void> => {
-          return this.removeFromRelatedRecords(relationship, record);
-        }
-      });
+  hasMany(name: string): HasManyRelation {
+    let relationship = this._hasManyRelations[name];
+    if (!relationship) {
+      this._hasManyRelations[name] = relationship = new HasManyRelation(
+        this,
+        name
+      );
     }
-    this._relatedRecords[relationship].invalidate();
-
-    return this._relatedRecords[relationship];
+    return relationship;
   }
 
-  async addToRelatedRecords(
-    relationship: string,
-    record: Model,
-    options?: object
-  ): Promise<void> {
-    await this.store.update(
-      t => t.addToRelatedRecords(this.identity, relationship, record.identity),
-      options
-    );
-  }
-
-  async removeFromRelatedRecords(
-    relationship: string,
-    record: Model,
-    options?: object
-  ): Promise<void> {
-    await this.store.update(
-      t =>
-        t.removeFromRelatedRecords(
-          this.identity,
-          relationship,
-          record.identity
-        ),
-      options
-    );
+  hasOne(name: string): HasOneRelation {
+    let relationship = this._hasOneRelations[name];
+    if (!relationship) {
+      this._hasOneRelations[name] = relationship = new HasOneRelation(
+        this,
+        name
+      );
+    }
+    return relationship;
   }
 
   async update(
@@ -150,14 +98,13 @@ export default class Model {
 
   notifyPropertyChange(key: string) {
     const notifier = Reflect.getMetadata('orbit:notifier', this, key);
+
     if (notifier) {
       notifier(this);
-    } else {
-      notifyPropertyChange(this, key);
     }
   }
 
-  private get store(): Store {
+  get store(): Store {
     if (!this._store) {
       throw new Error('record has been removed from Store');
     }
