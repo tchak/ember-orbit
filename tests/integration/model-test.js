@@ -4,6 +4,7 @@ import { createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
 import { getOwner } from '@ember/application';
 import { waitForSource } from 'ember-orbit/test-support';
+import { gte } from 'ember-compatibility-helpers';
 
 module('Integration - Model', function(hooks) {
   let store;
@@ -140,7 +141,11 @@ module('Integration - Model', function(hooks) {
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
 
-    callisto.planet = jupiter;
+    if (gte('3.15.0')) {
+      callisto.planet = jupiter;
+    } else {
+      callisto.set('planet', jupiter);
+    }
     await waitForSource(store);
 
     assert.equal(callisto.planet, jupiter, 'replaced hasOne with record');
@@ -162,12 +167,20 @@ module('Integration - Model', function(hooks) {
 
     assert.equal(callisto.planet, null, 'hasOne is null');
 
-    callisto.planet = jupiter;
+    if (gte('3.15.0')) {
+      callisto.planet = jupiter;
+    } else {
+      callisto.set('planet', jupiter);
+    }
     await waitForSource(store);
 
     assert.equal(callisto.planet, jupiter, 'hasOne is jupiter');
 
-    callisto.planet = null;
+    if (gte('3.15.0')) {
+      callisto.planet = null;
+    } else {
+      callisto.set('planet', null);
+    }
     await waitForSource(store);
 
     assert.equal(callisto.planet, null, 'replaced hasOne with null');
@@ -179,7 +192,11 @@ module('Integration - Model', function(hooks) {
 
   test('replace attribute on model', async function(assert) {
     const record = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    record.name = 'Jupiter2';
+    if (gte('3.15.0')) {
+      record.name = 'Jupiter2';
+    } else {
+      record.set('name', 'Jupiter2');
+    }
     assert.equal(record.name, 'Jupiter2');
   });
 
@@ -228,7 +245,11 @@ module('Integration - Model', function(hooks) {
       name: 'Jupiter',
       remoteId: 'planet:jupiter'
     });
-    record.remoteId = 'planet:joopiter';
+    if (gte('3.15.0')) {
+      record.remoteId = 'planet:joopiter';
+    } else {
+      record.set('remoteId', 'planet:joopiter');
+    }
     await waitForSource(store);
 
     assert.equal(record.remoteId, 'planet:joopiter');

@@ -2,6 +2,7 @@ import { Planet, Moon, Star } from 'dummy/tests/support/dummy-models';
 import { createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
 import { waitForSource } from 'ember-orbit/test-support';
+import { gte } from 'ember-compatibility-helpers';
 
 module('Integration - Cache', function(hooks) {
   let store;
@@ -183,7 +184,11 @@ module('Integration - Cache', function(hooks) {
   test('#peekRelatedRecord - existing record + relationship', async function(assert) {
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
-    callisto.planet = jupiter;
+    if (gte('3.15.0')) {
+      callisto.planet = jupiter;
+    } else {
+      callisto.set('planet', jupiter);
+    }
     await waitForSource(store);
     assert.strictEqual(cache.peekRelatedRecord(callisto, 'planet'), jupiter);
   });
