@@ -8,12 +8,11 @@ import {
   RelationshipDefinition
 } from '@orbit/data';
 
-import EmberObject, { notifyPropertyChange } from '@ember/object';
+import EmberObject from '@ember/object';
 import { gte } from 'ember-compatibility-helpers';
 
 import HasMany from './relationships/has-many';
 import Store from './store';
-import { ClassicModel } from './classic-model';
 
 export interface ModelSettings {
   identity: RecordIdentity;
@@ -28,18 +27,11 @@ export interface ModelInjections {
   _store: Store;
 }
 
-export default class Model {
-  static _notifiers: Dict<(instance: Model) => void> = {};
-
+export class ClassicModel extends EmberObject {
   identity!: RecordIdentity;
 
   private _store?: Store;
   private _relatedRecords: Dict<HasManyContract> = {};
-
-  constructor(identity: RecordIdentity, store: Store) {
-    this.identity = identity;
-    this._store = store;
-  }
 
   get id(): string {
     return this.identity.id;
@@ -93,7 +85,7 @@ export default class Model {
 
   async replaceRelatedRecord(
     relationship: string,
-    relatedRecord: Model | null,
+    relatedRecord: ClassicModel | null,
     options?: object
   ): Promise<void> {
     await this.store.update(
@@ -114,10 +106,10 @@ export default class Model {
       this._relatedRecords[relationship] = HasMany.create({
         getContent: () =>
           this.store.cache.peekRelatedRecords(this.identity, relationship),
-        addToContent: (record: Model): Promise<void> => {
+        addToContent: (record: ClassicModel): Promise<void> => {
           return this.addToRelatedRecords(relationship, record);
         },
-        removeFromContent: (record: Model): Promise<void> => {
+        removeFromContent: (record: ClassicModel): Promise<void> => {
           return this.removeFromRelatedRecords(relationship, record);
         }
       });
@@ -129,7 +121,7 @@ export default class Model {
 
   async addToRelatedRecords(
     relationship: string,
-    record: Model,
+    record: ClassicModel,
     options?: object
   ): Promise<void> {
     await this.store.update(
@@ -140,7 +132,7 @@ export default class Model {
 
   async removeFromRelatedRecords(
     relationship: string,
-    record: Model,
+    record: ClassicModel,
     options?: object
   ): Promise<void> {
     await this.store.update(
@@ -185,23 +177,10 @@ export default class Model {
     this._store = undefined;
   }
 
-  destroy() {
+  willDestroy(): void {
     const cache = this.store.cache;
     if (cache) {
       cache.unload(this);
-    }
-  }
-
-  notifyPropertyChange(key: string) {
-    if (gte('3.15.0')) {
-      const notifier = Reflect.getMetadata('orbit:notifier', this, key);
-      if (notifier) {
-        notifier(this);
-      } else {
-        notifyPropertyChange(this, key);
-      }
-    } else {
-      notifyPropertyChange(this, key);
     }
   }
 
@@ -253,29 +232,5 @@ export default class Model {
     }
 
     return options;
-  }
-
-  static create(injections: ModelInjections) {
-    const { identity, _store, ..._injections } = injections;
-    const record = new this(identity, _store);
-    return Object.assign(record, _injections);
-  }
-
-  static extend(mixin?: any) {
-    if (gte('3.15.0')) {
-      throw new Error(
-        'Model: on Ember >= 3.15 you should use native inheritance.'
-      );
-    } else {
-      return ClassicModel.extend(mixin);
-    }
-  }
-
-  static proto() {
-    (EmberObject as any).proto.call(this);
-  }
-
-  static eachComputedProperty(callback, target) {
-    EmberObject.eachComputedProperty.call(target, callback);
   }
 }

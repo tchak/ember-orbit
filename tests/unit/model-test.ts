@@ -1,30 +1,48 @@
 import { key, attr, hasOne, hasMany, Model } from 'ember-orbit';
 import { module, test } from 'qunit';
+import { gte } from 'ember-compatibility-helpers';
 
 module('Unit - Model', function(hooks) {
   let Planet: any, Moon: any, Star: any;
 
   hooks.beforeEach(function() {
-    class PlanetClass extends Model {
-      @attr('string') name;
-      @attr('string') classification;
-      @hasOne('star') sun;
-      @hasMany('moon') moons;
-    }
+    if (gte('3.15.0')) {
+      class PlanetClass extends Model {
+        @attr('string') name;
+        @attr('string') classification;
+        @hasOne('star') sun;
+        @hasMany('moon') moons;
+      }
 
-    class MoonClass extends Model {
-      @attr('string') name;
-      @hasOne('planet') planet;
-    }
+      class MoonClass extends Model {
+        @attr('string') name;
+        @hasOne('planet') planet;
+      }
 
-    class StarClass extends Model {
-      @attr('string') name;
-      @hasMany('planet') planets;
-    }
+      class StarClass extends Model {
+        @attr('string') name;
+        @hasMany('planet') planets;
+      }
 
-    Planet = PlanetClass;
-    Moon = MoonClass;
-    Star = StarClass;
+      Planet = PlanetClass;
+      Moon = MoonClass;
+      Star = StarClass;
+    } else {
+      Planet = Model.extend({
+        name: attr('string'),
+        classification: attr('string'),
+        sun: hasOne('star'),
+        moons: hasMany('moon')
+      });
+      Moon = Model.extend({
+        name: attr('string'),
+        planet: hasOne('planet')
+      });
+      Star = Model.extend({
+        name: attr('string'),
+        planets: hasMany('planet')
+      });
+    }
   });
 
   hooks.afterEach(function() {
@@ -48,11 +66,17 @@ module('Unit - Model', function(hooks) {
   test('#keys returns defined custom secondary keys', function(assert) {
     var keys, names;
 
-    class PlanetClass extends Planet {
-      @key() remoteId;
-    }
+    if (gte('3.15.0')) {
+      class PlanetClass extends Planet {
+        @key() remoteId;
+      }
 
-    Planet = PlanetClass;
+      Planet = PlanetClass;
+    } else {
+      Planet.reopen({
+        remoteId: key()
+      });
+    }
 
     keys = Planet.keys;
     names = Object.keys(keys);
