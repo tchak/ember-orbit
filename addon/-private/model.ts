@@ -1,9 +1,5 @@
 import 'reflect-metadata';
-import {
-  Record as OrbitRecord,
-  RecordIdentity,
-  ModelDefinition
-} from '@orbit/data';
+import { RecordIdentity, ModelDefinition } from '@orbit/data';
 
 import { notifyPropertyChange } from '@ember/object';
 
@@ -48,10 +44,6 @@ export default class Model {
     return !this._store;
   }
 
-  getData(): OrbitRecord | undefined {
-    return this.store.cache.peekRecordData(this.type, this.id);
-  }
-
   getAttribute(field: string): any {
     return this.store.cache.peekAttribute(this.identity, field);
   }
@@ -68,7 +60,7 @@ export default class Model {
   }
 
   getRelatedRecord(relationship: string): Model | null | undefined {
-    return this.store.cache.peekRelatedRecord(this.identity, relationship);
+    return this.store.cache.relatedRecord(this.identity, relationship);
   }
 
   async replaceRelatedRecord(
@@ -93,7 +85,7 @@ export default class Model {
     if (!this._relatedRecords[relationship]) {
       this._relatedRecords[relationship] = HasMany.create({
         getContent: () =>
-          this.store.cache.peekRelatedRecords(this.identity, relationship),
+          this.store.cache.relatedRecords(this.identity, relationship),
         addToContent: (record: Model): Promise<void> => {
           return this.addToRelatedRecords(relationship, record);
         },

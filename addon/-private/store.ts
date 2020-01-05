@@ -9,7 +9,6 @@ import {
   TransformOrOperations,
   cloneRecordIdentity,
   RecordOperation,
-  KeyMap,
   Schema,
   TransformBuilder
 } from '@orbit/data';
@@ -19,6 +18,12 @@ import Cache from './cache';
 import Model from './model';
 import ModelFactory from './model-factory';
 import normalizeRecordProperties from './utils/normalize-record-properties';
+import {
+  FindRecordQueryBuilder,
+  FindRecordsQueryBuilder,
+  FindRelatedRecordQueryBuilder,
+  FindRelatedRecordsQueryBuilder
+} from './query-builders';
 
 export interface StoreSettings {
   source: MemorySource;
@@ -58,16 +63,12 @@ export default class Store {
     return this._cache;
   }
 
-  get keyMap(): KeyMap | undefined {
-    return this.source.keyMap;
+  get transformBuilder(): TransformBuilder {
+    return this._source.transformBuilder;
   }
 
   get schema(): Schema {
     return this.source.schema;
-  }
-
-  get transformBuilder(): TransformBuilder {
-    return this.source.transformBuilder;
   }
 
   get transformLog(): Log {
@@ -89,7 +90,7 @@ export default class Store {
     return Store.create({ ...injections, source: forkedSource });
   }
 
-  merge(forkedStore: Store, options?: MemorySourceMergeOptions): Promise<any> {
+  merge(forkedStore: Store, options?: MemorySourceMergeOptions): Promise<void> {
     return this.source.merge(forkedStore.source, options);
   }
 
@@ -99,20 +100,6 @@ export default class Store {
 
   rebase(): void {
     this.source.rebase();
-  }
-
-  liveQuery(
-    queryOrExpressions: QueryOrExpressions,
-    options?: object,
-    id?: string
-  ): Promise<any> {
-    const query = buildQuery(
-      queryOrExpressions,
-      options,
-      id,
-      this.source.queryBuilder
-    );
-    return this.source.query(query).then(() => this.cache.liveQuery(query));
   }
 
   async query(
@@ -130,16 +117,30 @@ export default class Store {
     return this.cache.lookup(result, query.expressions.length);
   }
 
-  async addRecord(properties = {}, options?: object): Promise<Model> {
-    let record = normalizeRecordProperties(this.source.schema, properties);
-    await this.update(t => t.addRecord(record), options);
-    return this.cache.lookup(record) as Model;
+  update(
+    transformOrTransforms: TransformOrOperations,
+    options?: object,
+    id?: string
+  ): Promise<any> {
+    return this.source.update(transformOrTransforms, options, id);
   }
 
-  async updateRecord(properties = {}, options?: object): Promise<Model> {
+  async addRecord<M extends Model = Model>(
+    properties = {},
+    options?: object
+  ): Promise<M> {
+    let record = normalizeRecordProperties(this.source.schema, properties);
+    await this.update(t => t.addRecord(record), options);
+    return this.cache.lookup(record) as M;
+  }
+
+  async updateRecord<M extends Model = Model>(
+    properties = {},
+    options?: object
+  ): Promise<M> {
     let record = normalizeRecordProperties(this.source.schema, properties);
     await this.update(t => t.updateRecord(record), options);
-    return this.cache.lookup(record) as Model;
+    return this.cache.lookup(record) as M;
   }
 
   async removeRecord(record: RecordIdentity, options?: object): Promise<void> {
@@ -147,20 +148,70 @@ export default class Store {
     await this.update(t => t.removeRecord(identity), options);
   }
 
-  findRecord(type: string, id: string, options?: object): Promise<Model> {
-    return this.query(q => q.findRecord({ type, id }), options);
+  findRecord<M extends Model = Model>(
+    identifier: RecordIdentity,
+    options?: object
+  ): FindRecordQueryBuilder<M> {
+    const queryBuilder = new FindRecordQueryBuilder<M>(this, identifier);
+
+    if (options) {
+      return queryBuilder.options(options);
+    }
+    return queryBuilder;
   }
 
-  findRecords(type: string, options?: object): Promise<Model[]> {
-    return this.query(q => q.findRecords(type), options);
+  findRecords<M extends Model = Model>(
+    type: string | RecordIdentity[],
+    options?: object
+  ): FindRecordsQueryBuilder<M> {
+    const queryBuilder = new FindRecordsQueryBuilder<M>(this, type);
+
+    if (options) {
+      return queryBuilder.options(options);
+    }
+    return queryBuilder;
   }
 
-  peekRecord(type: string, id: string): Model | undefined {
-    return this.cache.peekRecord(type, id);
+  findRelatedRecord(
+    identifier: RecordIdentity,
+    relationship: string,
+    options?: object
+  ): FindRelatedRecordQueryBuilder {
+    const queryBuilder = new FindRelatedRecordQueryBuilder(
+      this,
+      identifier,
+      relationship
+    );
+
+    if (options) {
+      return queryBuilder.options(options);
+    }
+    return queryBuilder;
   }
 
-  peekRecords(type: string): Model[] {
-    return this.cache.peekRecords(type);
+  findRelatedRecords(
+    identifier: RecordIdentity,
+    relationship: string,
+    options?: object
+  ): FindRelatedRecordsQueryBuilder {
+    const queryBuilder = new FindRelatedRecordsQueryBuilder(
+      this,
+      identifier,
+      relationship
+    );
+
+    if (options) {
+      return queryBuilder.options(options);
+    }
+    return queryBuilder;
+  }
+
+  peekRecord(identifier: RecordIdentity): Model | undefined {
+    return this.cache.record(identifier);
+  }
+
+  peekRecords(type: string | RecordIdentity[]): Model[] {
+    return this.cache.records(type);
   }
 
   on(event: string, listener: Listener): void {
@@ -177,14 +228,6 @@ export default class Store {
 
   sync(transformOrTransforms: Transform | Transform[]): Promise<void> {
     return this.source.sync(transformOrTransforms);
-  }
-
-  update(
-    transformOrTransforms: TransformOrOperations,
-    options?: object,
-    id?: string
-  ): Promise<any> {
-    return this.source.update(transformOrTransforms, options, id);
   }
 
   transformsSince(transformId: string): Transform[] {
