@@ -2,7 +2,7 @@ import { getOwner, setOwner } from '@ember/application';
 
 import {
   buildQuery,
-  QueryOrExpression,
+  QueryOrExpressions,
   RecordIdentity,
   Transform,
   TransformOrOperations,
@@ -103,12 +103,12 @@ export default class Store {
   }
 
   liveQuery(
-    queryOrExpression: QueryOrExpression,
+    queryOrExpressions: QueryOrExpressions,
     options?: object,
     id?: string
   ): Promise<any> {
     const query = buildQuery(
-      queryOrExpression,
+      queryOrExpressions,
       options,
       id,
       this.source.queryBuilder
@@ -117,18 +117,18 @@ export default class Store {
   }
 
   async query(
-    queryOrExpression: QueryOrExpression,
+    queryOrExpressions: QueryOrExpressions,
     options?: object,
     id?: string
   ): Promise<any> {
     const query = buildQuery(
-      queryOrExpression,
+      queryOrExpressions,
       options,
       id,
       this.source.queryBuilder
     );
     const result = await this.source.query(query);
-    return this.cache.lookup(result);
+    return this.cache.lookup(result, query.expressions.length);
   }
 
   async addRecord(properties = {}, options?: object): Promise<Model> {
