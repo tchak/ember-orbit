@@ -16,14 +16,12 @@ export const DEFAULT_ORBIT_CONFIG = {
   services: {
     store: 'store',
     coordinator: 'data-coordinator',
-    schema: 'data-schema',
-    keyMap: 'data-key-map'
+    schema: 'data-schema'
   },
   skipStoreService: false,
   skipStoreInjections: false,
   skipCoordinatorService: false,
-  skipSchemaService: false,
-  skipKeyMapService: false
+  skipSchemaService: false
 };
 
 export function initialize(application) {

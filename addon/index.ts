@@ -1,5 +1,4 @@
 export { default as CoordinatorFactory } from './-private/factories/coordinator-factory';
-export { default as KeyMapFactory } from './-private/factories/key-map-factory';
 export { default as SchemaFactory } from './-private/factories/schema-factory';
 export { default as MemorySourceFactory } from './-private/factories/memory-source-factory';
 export { default as StoreFactory } from './-private/factories/memory-source-factory';

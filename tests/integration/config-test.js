@@ -29,8 +29,7 @@ module('Integration - Config', function(hooks) {
           services: {
             store: 'orbit-store',
             coordinator: 'orbit-coordinator',
-            schema: 'data-schema',
-            keyMap: 'orbit-key-map'
+            schema: 'data-schema'
           }
         }
       },
@@ -68,16 +67,6 @@ module('Integration - Config', function(hooks) {
     assert.ok(
       owner.lookup('service:data-schema'),
       'unconfigured lookup type falls back to default configuration'
-    );
-    assert.equal(
-      owner.lookup('controller:application').orbitStore,
-      store,
-      'configured store name is camelized for controller and route injection'
-    );
-    assert.equal(
-      owner.lookup('route:application').orbitStore,
-      store,
-      'configured store name is camelized for controller and route injection'
     );
   });
 });
