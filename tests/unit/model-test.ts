@@ -40,7 +40,7 @@ module('Unit - Model', function(hooks) {
   test('#attributes returns defined attributes', function(assert) {
     var attributes, keys;
 
-    attributes = Planet.attributes;
+    attributes = Planet.schema.attributes;
     keys = Object.keys(attributes);
     assert.equal(keys.length, 2);
     assert.equal(keys[0], 'name');
@@ -50,18 +50,18 @@ module('Unit - Model', function(hooks) {
   test('#relationships returns defined relationships', function(assert) {
     var relationships, keys;
 
-    relationships = Planet.relationships;
+    relationships = Planet.schema.relationships;
     keys = Object.keys(relationships);
     assert.equal(keys.length, 2);
     assert.equal(keys[0], 'sun');
     assert.equal(keys[1], 'moons');
 
-    relationships = Moon.relationships;
+    relationships = Moon.schema.relationships;
     keys = Object.keys(relationships);
     assert.equal(keys.length, 1);
     assert.equal(keys[0], 'planet');
 
-    relationships = Star.relationships;
+    relationships = Star.schema.relationships;
     keys = Object.keys(relationships);
     assert.equal(keys.length, 1);
     assert.equal(keys[0], 'planets');

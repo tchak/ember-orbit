@@ -1,6 +1,6 @@
 import { Listener } from '@orbit/core';
 import { deepGet } from '@orbit/utils';
-import Orbit, {
+import {
   buildQuery,
   RecordIdentity,
   QueryOrExpressions,
@@ -13,12 +13,11 @@ import Orbit, {
 import { QueryResult, QueryResultData } from '@orbit/record-cache';
 import { MemoryCache } from '@orbit/memory';
 import IdentityMap from '@orbit/identity-map';
+
 import LiveQuery from './live-query';
 import Model from './model';
 import ModelFactory from './model-factory';
 import recordIdentitySerializer from './utils/record-identity-serializer';
-
-const { assert, deprecate } = Orbit;
 
 export interface CacheSettings {
   sourceCache: MemoryCache;
@@ -62,32 +61,12 @@ export default class Cache {
     return this._sourceCache.transformBuilder;
   }
 
-  /**
-   * @deprecated
-   */
-  retrieveRecordData(type: string, id: string): Record | undefined {
-    deprecate(
-      '`Cache#retrieveRecordData(type, id)` is deprecated, use `Cache#peekRecordData(type, id)`.'
-    );
-    return this.peekRecordData(type, id);
-  }
-
   peekRecordData(type: string, id: string): Record | undefined {
     return this._sourceCache.getRecordSync({ type, id });
   }
 
   includesRecord(type: string, id: string): boolean {
     return !!this.peekRecordData(type, id);
-  }
-
-  /**
-   * @deprecated
-   */
-  retrieveRecord(type: string, id: string): Model | undefined {
-    deprecate(
-      '`Cache#retrieveRecord(type, id)` is deprecated, use `Cache#peekRecord(type, id)`.'
-    );
-    return this.peekRecord(type, id);
   }
 
   peekRecord(type: string, id: string): Model | undefined {
@@ -102,70 +81,9 @@ export default class Cache {
     return this.lookup(identities) as Model[];
   }
 
-  peekRecordByKey(
-    type: string,
-    keyName: string,
-    keyValue: string
-  ): Model | undefined {
-    return this.peekRecord(type, this.recordIdFromKey(type, keyName, keyValue));
-  }
-
-  recordIdFromKey(type: string, keyName: string, keyValue: string): string {
-    let keyMap = this.keyMap as KeyMap;
-    assert(
-      'No `keyMap` has been assigned to the Cache, so `recordIdFromKey` can not work.',
-      !!keyMap
-    );
-    let id = keyMap.keyToId(type, keyName, keyValue);
-    if (!id) {
-      id = this.schema.generateId(type);
-      keyMap.pushRecord({ type, id, keys: { [keyName]: keyValue } });
-    }
-    return id;
-  }
-
-  /**
-   * @deprecated
-   */
-  retrieveKey(identity: RecordIdentity, key: string): string | undefined {
-    deprecate(
-      '`Cache#retrieveKey(identity, key)` is deprecated, use `Cache#peekKey(identity, key)`.'
-    );
-    return this.peekKey(identity, key);
-  }
-
-  peekKey(identity: RecordIdentity, key: string): string | undefined {
-    const record = this._sourceCache.getRecordSync(identity);
-    return record && deepGet(record, ['keys', key]);
-  }
-
-  /**
-   * @deprecated
-   */
-  retrieveAttribute(identity: RecordIdentity, attribute: string): any {
-    deprecate(
-      '`Cache#retrieveAttribute(identity, attribute)` is deprecated, use `Cache#peekAttribute(identity, key)`.'
-    );
-    const record = this._sourceCache.getRecordSync(identity);
-    return record && deepGet(record, ['attributes', attribute]);
-  }
-
   peekAttribute(identity: RecordIdentity, attribute: string): any {
     const record = this._sourceCache.getRecordSync(identity);
     return record && deepGet(record, ['attributes', attribute]);
-  }
-
-  /**
-   * @deprecated
-   */
-  retrieveRelatedRecord(
-    identity: RecordIdentity,
-    relationship: string
-  ): Model | null | undefined {
-    deprecate(
-      '`Cache#retrieveRelatedRecord(identity, relationship)` is deprecated, use `Cache#peekRelatedRecord(identity, relationship)`.'
-    );
-    return this.peekRelatedRecord(identity, relationship);
   }
 
   peekRelatedRecord(
@@ -181,19 +99,6 @@ export default class Cache {
     } else {
       return relatedRecord;
     }
-  }
-
-  /**
-   * @deprecated
-   */
-  retrieveRelatedRecords(
-    identity: RecordIdentity,
-    relationship: string
-  ): Model[] | undefined {
-    deprecate(
-      '`Cache#retrieveRelatedRecords(identity, relationship)` is deprecated, use `Cache#peekRelatedRecords(identity, relationship)`.'
-    );
-    return this.peekRelatedRecords(identity, relationship);
   }
 
   peekRelatedRecords(
@@ -250,21 +155,6 @@ export default class Cache {
     this._liveQuerySet.add(liveQuery);
 
     return liveQuery;
-  }
-
-  find(type: string, id?: string): Model | Model[] {
-    if (id === undefined) {
-      return this.findRecords(type);
-    } else {
-      return this.findRecord(type, id);
-    }
-  }
-
-  findAll(type: string, options?: object): Model[] {
-    deprecate(
-      '`Cache.findAll(type)` is deprecated, use `Cache.findRecords(type)`.'
-    );
-    return this.findRecords(type, options);
   }
 
   findRecord(type: string, id: string, options?: object): Model {

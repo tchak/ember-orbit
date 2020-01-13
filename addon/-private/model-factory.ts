@@ -15,9 +15,10 @@ export default class ModelFactory {
 
   create(identity: RecordIdentity): Model {
     const modelFactory = this.modelFactoryFor(identity.type);
+
     return modelFactory.create({
       identity: cloneRecordIdentity(identity),
-      _store: this._store
+      store: this._store
     });
   }
 

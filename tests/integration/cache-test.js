@@ -248,36 +248,4 @@ module('Integration - Cache', function(hooks) {
     assert.deepEqual(foundRecords, [earth]);
     assert.strictEqual(foundRecords[0], earth);
   });
-
-  test('#find - by type and id', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    const foundRecord = cache.find('planet', earth.id);
-    assert.strictEqual(foundRecord, earth, 'exact match');
-  });
-
-  test('#find - by type', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-
-    const foundRecords = cache.find('planet');
-    assert.equal(foundRecords.length, 2, 'two records found');
-    assert.ok(foundRecords.includes(earth), 'earth is included');
-    assert.ok(foundRecords.includes(jupiter), 'jupiter is included');
-  });
-
-  test('#findRecord', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    const foundRecord = cache.findRecord('planet', earth.id);
-    assert.strictEqual(foundRecord, earth, 'exact match');
-  });
-
-  test('#findRecords', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-
-    const foundRecords = cache.findRecords('planet');
-    assert.equal(foundRecords.length, 2, 'two records found');
-    assert.ok(foundRecords.includes(earth), 'earth is included');
-    assert.ok(foundRecords.includes(jupiter), 'jupiter is included');
-  });
 });

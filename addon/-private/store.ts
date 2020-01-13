@@ -1,5 +1,6 @@
 import { getOwner, setOwner } from '@ember/application';
 
+import { Log, TaskQueue, Listener } from '@orbit/core';
 import {
   buildQuery,
   QueryOrExpressions,
@@ -13,13 +14,11 @@ import {
   TransformBuilder
 } from '@orbit/data';
 import MemorySource, { MemorySourceMergeOptions } from '@orbit/memory';
-import Orbit, { Log, TaskQueue, Listener } from '@orbit/core';
+
 import Cache from './cache';
 import Model from './model';
 import ModelFactory from './model-factory';
 import normalizeRecordProperties from './utils/normalize-record-properties';
-
-const { deprecate } = Orbit;
 
 export interface StoreSettings {
   source: MemorySource;
@@ -148,21 +147,6 @@ export default class Store {
     await this.update(t => t.removeRecord(identity), options);
   }
 
-  findAll(type: string, options?: object): Promise<Model[]> {
-    deprecate(
-      '`Store.findAll(type)` is deprecated, use `Store.findRecords(type)`.'
-    );
-    return this.findRecords(type, options);
-  }
-
-  find(type: string, id?: string | undefined): Promise<Model | Model[]> {
-    if (id === undefined) {
-      return this.findRecords(type);
-    } else {
-      return this.findRecord(type, id);
-    }
-  }
-
   findRecord(type: string, id: string, options?: object): Promise<Model> {
     return this.query(q => q.findRecord({ type, id }), options);
   }
@@ -171,33 +155,12 @@ export default class Store {
     return this.query(q => q.findRecords(type), options);
   }
 
-  findRecordByKey(
-    type: string,
-    keyName: string,
-    keyValue: string,
-    options?: object
-  ): Promise<Model> {
-    return this.findRecord(
-      type,
-      this.cache.recordIdFromKey(type, keyName, keyValue),
-      options
-    );
-  }
-
   peekRecord(type: string, id: string): Model | undefined {
     return this.cache.peekRecord(type, id);
   }
 
   peekRecords(type: string): Model[] {
     return this.cache.peekRecords(type);
-  }
-
-  peekRecordByKey(
-    type: string,
-    keyName: string,
-    keyValue: string
-  ): Model | undefined {
-    return this.cache.peekRecordByKey(type, keyName, keyValue);
   }
 
   on(event: string, listener: Listener): void {

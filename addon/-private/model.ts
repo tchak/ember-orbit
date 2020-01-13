@@ -1,11 +1,8 @@
 import 'reflect-metadata';
-import { Dict } from '@orbit/utils';
 import {
-  Record,
+  Record as OrbitRecord,
   RecordIdentity,
-  KeyDefinition,
-  AttributeDefinition,
-  RelationshipDefinition
+  ModelDefinition
 } from '@orbit/data';
 
 import { notifyPropertyChange } from '@ember/object';
@@ -23,16 +20,16 @@ interface HasManyContract {
 
 export interface ModelInjections {
   identity: RecordIdentity;
-  _store: Store;
+  store: Store;
 }
 
 export default class Model {
-  static _notifiers: Dict<(instance: Model) => void> = {};
+  static _notifiers: Record<string, (instance: Model) => void> = {};
 
   identity!: RecordIdentity;
 
   private _store?: Store;
-  private _relatedRecords: Dict<HasManyContract> = {};
+  private _relatedRecords: Record<string, HasManyContract> = {};
 
   constructor(identity: RecordIdentity, store: Store) {
     this.identity = identity;
@@ -51,23 +48,8 @@ export default class Model {
     return !this._store;
   }
 
-  getData(): Record | undefined {
+  getData(): OrbitRecord | undefined {
     return this.store.cache.peekRecordData(this.type, this.id);
-  }
-
-  getKey(field: string): string | undefined {
-    return this.store.cache.peekKey(this.identity, field);
-  }
-
-  async replaceKey(
-    field: string,
-    value: string,
-    options?: object
-  ): Promise<void> {
-    await this.store.update(
-      t => t.replaceKey(this.identity, field, value),
-      options
-    );
   }
 
   getAttribute(field: string): any {
@@ -85,7 +67,7 @@ export default class Model {
     );
   }
 
-  getRelatedRecord(relationship: string): Record | null | undefined {
+  getRelatedRecord(relationship: string): Model | null | undefined {
     return this.store.cache.peekRelatedRecord(this.identity, relationship);
   }
 
@@ -152,24 +134,8 @@ export default class Model {
     );
   }
 
-  async replaceAttributes(
-    properties: Dict<unknown> = {},
-    options?: object
-  ): Promise<void> {
-    const keys = Object.keys(properties);
-    await this.store
-      .update(
-        t =>
-          keys.map(key =>
-            t.replaceAttribute(this.identity, key, properties[key])
-          ),
-        options
-      )
-      .then(() => this);
-  }
-
   async update(
-    properties: Dict<unknown> = {},
+    properties: Record<string, unknown> = {},
     options?: object
   ): Promise<void> {
     await this.store.updateRecord({ ...properties, ...this.identity }, options);
@@ -207,19 +173,20 @@ export default class Model {
     return this._store;
   }
 
-  static get keys(): Dict<KeyDefinition> {
-    return this.getPropertiesOptions('key');
+  static create(injections: ModelInjections) {
+    const { identity, store, ..._injections } = injections;
+    const record = new this(identity, store);
+    return Object.assign(record, _injections);
   }
 
-  static get attributes(): Dict<AttributeDefinition> {
-    return this.getPropertiesOptions('attribute');
+  static get schema(): ModelDefinition {
+    return {
+      attributes: this.getDefinitionFor('attribute'),
+      relationships: this.getDefinitionFor('relationship')
+    };
   }
 
-  static get relationships(): Dict<RelationshipDefinition> {
-    return this.getPropertiesOptions('relationship');
-  }
-
-  static getPropertiesOptions(kind: string) {
+  static getDefinitionFor(kind: string) {
     const options = {};
     const properties = Object.getOwnPropertyNames(this.prototype);
 
@@ -234,11 +201,5 @@ export default class Model {
     }
 
     return options;
-  }
-
-  static create(injections: ModelInjections) {
-    const { identity, _store, ..._injections } = injections;
-    const record = new this(identity, _store);
-    return Object.assign(record, _injections);
   }
 }

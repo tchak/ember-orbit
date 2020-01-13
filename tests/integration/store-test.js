@@ -340,36 +340,6 @@ module('Integration - Store', function(hooks) {
     assert.equal(liveQuery.length, 1);
   });
 
-  test('#find - by type', async function(assert) {
-    let earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    let jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-
-    let records = await store.find('planet');
-    assert.equal(records.length, 2);
-    assert.ok(records.includes(earth));
-    assert.ok(records.includes(jupiter));
-  });
-
-  test('#find - by type and id', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    const record = await store.find('planet', earth.id);
-
-    assert.strictEqual(record, earth);
-  });
-
-  test('#find - missing record', async function(assert) {
-    try {
-      await store.find('planet', 'jupiter');
-    } catch (e) {
-      assert.equal(
-        e.message,
-        'Record not found: planet:jupiter',
-        'query - error caught'
-      );
-    }
-  });
-
   test('#fork - creates a clone of a base store', async function(assert) {
     const forkedStore = store.fork();
     const jupiter = await forkedStore.addRecord({

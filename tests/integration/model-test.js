@@ -205,17 +205,6 @@ module('Integration - Model', function(hooks) {
     assert.equal(record.getAttribute('name'), 'Jupiter2');
   });
 
-  test('#replaceAttributes', async function(assert) {
-    const record = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    await record.replaceAttributes({
-      name: 'Jupiter2',
-      classification: 'gas giant2'
-    });
-
-    assert.equal(record.name, 'Jupiter2');
-    assert.equal(record.classification, 'gas giant2');
-  });
-
   test('destroy model', async function(assert) {
     const cache = store.cache;
 
