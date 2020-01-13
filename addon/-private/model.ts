@@ -8,12 +8,10 @@ import {
   RelationshipDefinition
 } from '@orbit/data';
 
-import EmberObject, { notifyPropertyChange } from '@ember/object';
-import { gte } from 'ember-compatibility-helpers';
+import { notifyPropertyChange } from '@ember/object';
 
 import HasMany from './relationships/has-many';
 import Store from './store';
-import { ClassicModel } from './classic-model';
 
 export interface ModelSettings {
   identity: RecordIdentity;
@@ -193,13 +191,9 @@ export default class Model {
   }
 
   notifyPropertyChange(key: string) {
-    if (gte('3.15.0')) {
-      const notifier = Reflect.getMetadata('orbit:notifier', this, key);
-      if (notifier) {
-        notifier(this);
-      } else {
-        notifyPropertyChange(this, key);
-      }
+    const notifier = Reflect.getMetadata('orbit:notifier', this, key);
+    if (notifier) {
+      notifier(this);
     } else {
       notifyPropertyChange(this, key);
     }
@@ -227,29 +221,16 @@ export default class Model {
 
   static getPropertiesOptions(kind: string) {
     const options = {};
+    const properties = Object.getOwnPropertyNames(this.prototype);
 
-    if (gte('3.15.0')) {
-      const properties = Object.getOwnPropertyNames(this.prototype);
-
-      for (let property of properties) {
-        if (Reflect.hasMetadata(`orbit:${kind}`, this.prototype, property)) {
-          options[property] = Reflect.getMetadata(
-            `orbit:${kind}`,
-            this.prototype,
-            property
-          );
-        }
+    for (let property of properties) {
+      if (Reflect.hasMetadata(`orbit:${kind}`, this.prototype, property)) {
+        options[property] = Reflect.getMetadata(
+          `orbit:${kind}`,
+          this.prototype,
+          property
+        );
       }
-    } else {
-      this.eachComputedProperty((name, meta) => {
-        if (kind === 'key' && meta.isKey) {
-          options[name] = meta.options;
-        } else if (kind === 'attribute' && meta.isAttribute) {
-          options[name] = meta.options;
-        } else if (kind === 'relationship' && meta.isRelationship) {
-          options[name] = meta.options;
-        }
-      }, this);
     }
 
     return options;
@@ -259,23 +240,5 @@ export default class Model {
     const { identity, _store, ..._injections } = injections;
     const record = new this(identity, _store);
     return Object.assign(record, _injections);
-  }
-
-  static extend(mixin?: any) {
-    if (gte('3.15.0')) {
-      throw new Error(
-        'Model: on Ember >= 3.15 you should use native inheritance.'
-      );
-    } else {
-      return ClassicModel.extend(mixin);
-    }
-  }
-
-  static proto() {
-    (EmberObject as any).proto.call(this);
-  }
-
-  static eachComputedProperty(callback, target) {
-    EmberObject.eachComputedProperty.call(target, callback);
   }
 }

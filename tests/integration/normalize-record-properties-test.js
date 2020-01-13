@@ -37,7 +37,6 @@ module('Integration - normalizeRecordProperties', function(hooks) {
 
     assert.equal(normalized.id, 'jupiter', 'normalized id');
     assert.equal(normalized.type, 'planet', 'normalized type');
-    assert.deepEqual(normalized.keys, undefined, 'normalized keys');
     assert.deepEqual(normalized.attributes, { name: 'Jupiter' });
     assert.deepEqual(
       normalized.relationships.moons,

@@ -4,7 +4,6 @@ import { createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
 import { getOwner } from '@ember/application';
 import { waitForSource } from 'ember-orbit/test-support';
-import { gte } from 'ember-compatibility-helpers';
 
 module('Integration - Model', function(hooks) {
   let store;
@@ -60,7 +59,6 @@ module('Integration - Model', function(hooks) {
       'assigned identity that includes type and id'
     );
     assert.equal(record.name, 'Jupiter', 'assigned specified attribute');
-    assert.equal(record.remoteId, 'planet:jupiter', 'assigned secondary key');
     assert.strictEqual(record.sun, theSun, 'assigned hasOne');
     assert.strictEqual([...record.moons][0], callisto, 'assigned hasMany');
   });
@@ -141,11 +139,8 @@ module('Integration - Model', function(hooks) {
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
 
-    if (gte('3.15.0')) {
-      callisto.planet = jupiter;
-    } else {
-      callisto.set('planet', jupiter);
-    }
+    callisto.planet = jupiter;
+
     await waitForSource(store);
 
     assert.equal(callisto.planet, jupiter, 'replaced hasOne with record');
@@ -167,20 +162,14 @@ module('Integration - Model', function(hooks) {
 
     assert.equal(callisto.planet, null, 'hasOne is null');
 
-    if (gte('3.15.0')) {
-      callisto.planet = jupiter;
-    } else {
-      callisto.set('planet', jupiter);
-    }
+    callisto.planet = jupiter;
+
     await waitForSource(store);
 
     assert.equal(callisto.planet, jupiter, 'hasOne is jupiter');
 
-    if (gte('3.15.0')) {
-      callisto.planet = null;
-    } else {
-      callisto.set('planet', null);
-    }
+    callisto.planet = null;
+
     await waitForSource(store);
 
     assert.equal(callisto.planet, null, 'replaced hasOne with null');
@@ -192,11 +181,9 @@ module('Integration - Model', function(hooks) {
 
   test('replace attribute on model', async function(assert) {
     const record = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    if (gte('3.15.0')) {
-      record.name = 'Jupiter2';
-    } else {
-      record.set('name', 'Jupiter2');
-    }
+
+    record.name = 'Jupiter2';
+
     assert.equal(record.name, 'Jupiter2');
   });
 
@@ -227,45 +214,6 @@ module('Integration - Model', function(hooks) {
 
     assert.equal(record.name, 'Jupiter2');
     assert.equal(record.classification, 'gas giant2');
-  });
-
-  test('#replaceKey', async function(assert) {
-    const record = await store.addRecord({
-      type: 'planet',
-      name: 'Jupiter',
-      remoteId: 'planet:jupiter'
-    });
-    await record.replaceKey('remoteId', 'planet:joopiter');
-    assert.equal(record.remoteId, 'planet:joopiter');
-  });
-
-  test('replace key via setter', async function(assert) {
-    const record = await store.addRecord({
-      type: 'planet',
-      name: 'Jupiter',
-      remoteId: 'planet:jupiter'
-    });
-    if (gte('3.15.0')) {
-      record.remoteId = 'planet:joopiter';
-    } else {
-      record.set('remoteId', 'planet:joopiter');
-    }
-    await waitForSource(store);
-
-    assert.equal(record.remoteId, 'planet:joopiter');
-  });
-
-  test('update via store: replaceKey operation invalidates key on model', async function(assert) {
-    const record = await store.addRecord({
-      type: 'planet',
-      name: 'Jupiter',
-      remoteId: 'planet:jupiter'
-    });
-    assert.equal(record.remoteId, 'planet:jupiter'); // cache the key
-    await store.update(t =>
-      t.replaceKey(record, 'remoteId', 'planet:joopiter')
-    );
-    assert.equal(record.remoteId, 'planet:joopiter');
   });
 
   test('destroy model', async function(assert) {

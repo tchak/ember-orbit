@@ -2,7 +2,6 @@ import { Planet, Moon, Star } from 'dummy/tests/support/dummy-models';
 import { createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
 import { waitForSource } from 'ember-orbit/test-support';
-import { gte } from 'ember-compatibility-helpers';
 
 module('Integration - Cache', function(hooks) {
   let store;
@@ -20,7 +19,6 @@ module('Integration - Cache', function(hooks) {
   });
 
   test('exposes properties from underlying MemoryCache', function(assert) {
-    assert.strictEqual(cache.keyMap, store.source.keyMap);
     assert.strictEqual(cache.schema, store.source.schema);
     assert.strictEqual(cache.transformBuilder, store.source.transformBuilder);
   });
@@ -106,36 +104,6 @@ module('Integration - Cache', function(hooks) {
     assert.strictEqual(cache.peekRecord('planet', 'fake'), undefined);
   });
 
-  test('#peekRecordByKey - existing record', async function(assert) {
-    const jupiter = await store.addRecord({
-      type: 'planet',
-      name: 'Jupiter',
-      remoteId: 'p01'
-    });
-    assert.strictEqual(
-      cache.peekRecordByKey('planet', 'remoteId', 'p01'),
-      jupiter,
-      'retrieved record'
-    );
-  });
-
-  test('#peekRecordByKey - missing record', async function(assert) {
-    assert.strictEqual(
-      cache.keyMap.keyToId('planet', 'remoteId', 'p01'),
-      undefined,
-      'key is not in map'
-    );
-    assert.strictEqual(
-      cache.peekRecordByKey('planet', 'remoteId', 'p01'),
-      undefined
-    );
-    assert.notStrictEqual(
-      cache.keyMap.keyToId('planet', 'remoteId', 'p01'),
-      undefined,
-      'id has been generated for key'
-    );
-  });
-
   test('#peekRecords', async function(assert) {
     const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
@@ -145,23 +113,6 @@ module('Integration - Cache', function(hooks) {
     assert.equal(planets.length, 2);
     assert.ok(planets.includes(earth));
     assert.ok(planets.includes(jupiter));
-  });
-
-  test('#peekKey - existing record + key', async function(assert) {
-    const jupiter = await store.addRecord({ type: 'planet', remoteId: '123' });
-    assert.equal(cache.peekKey(jupiter, 'remoteId'), '123');
-  });
-
-  test('#peekKey - missing record', async function(assert) {
-    assert.strictEqual(
-      cache.peekKey({ type: 'planet', id: 'fake' }, 'remoteId'),
-      undefined
-    );
-  });
-
-  test('#peekKey - existing record, missing key', async function(assert) {
-    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    assert.strictEqual(cache.peekKey(jupiter, 'fake'), undefined);
   });
 
   test('#peekAttribute - existing record + attribute', async function(assert) {
@@ -184,11 +135,9 @@ module('Integration - Cache', function(hooks) {
   test('#peekRelatedRecord - existing record + relationship', async function(assert) {
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
-    if (gte('3.15.0')) {
-      callisto.planet = jupiter;
-    } else {
-      callisto.set('planet', jupiter);
-    }
+
+    callisto.planet = jupiter;
+
     await waitForSource(store);
     assert.strictEqual(cache.peekRelatedRecord(callisto, 'planet'), jupiter);
   });
@@ -265,23 +214,6 @@ module('Integration - Cache', function(hooks) {
 
   test('peekRecordData - missing record', async function(assert) {
     assert.strictEqual(cache.peekRecordData('planet', 'fake'), undefined);
-  });
-
-  test('#recordIdFromKey - retrieves a record id based on a known key', async function(assert) {
-    await store.addRecord({
-      type: 'planet',
-      id: '123',
-      name: 'Earth',
-      remoteId: 'p01'
-    });
-    const id = cache.recordIdFromKey('planet', 'remoteId', 'p01');
-    assert.equal(id, '123');
-  });
-
-  test('#recordIdFromKey - generates a record id based on an unknown key', async function(assert) {
-    cache.schema.generateId = () => '123';
-    const id = cache.recordIdFromKey('planet', 'remoteId', 'p01');
-    assert.equal(id, '123');
   });
 
   test('#query - record', async function(assert) {

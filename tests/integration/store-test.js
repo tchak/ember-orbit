@@ -16,7 +16,6 @@ module('Integration - Store', function(hooks) {
   });
 
   test('exposes properties from source', function(assert) {
-    assert.strictEqual(store.keyMap, store.source.keyMap);
     assert.strictEqual(store.schema, store.source.schema);
     assert.strictEqual(store.transformBuilder, store.transformBuilder);
     assert.strictEqual(store.transformLog, store.source.transformLog);
@@ -57,33 +56,6 @@ module('Integration - Store', function(hooks) {
     }
   });
 
-  test('#findRecordByKey - can find a previously added record by key', async function(assert) {
-    const earth = await store.addRecord({
-      type: 'planet',
-      name: 'Earth',
-      remoteId: 'p01'
-    });
-    const record = await store.findRecordByKey('planet', 'remoteId', 'p01');
-    assert.strictEqual(record, earth);
-  });
-
-  test('#findRecordByKey - will generate a local id for a record that has not been added yet', async function(assert) {
-    const schema = store.source.schema;
-    const prevFn = schema.generateId;
-    schema.generateId = () => 'abc';
-
-    try {
-      await store.findRecordByKey('planet', 'remoteId', 'p01');
-    } catch (e) {
-      assert.equal(
-        store.source.keyMap.keyToId('planet', 'remoteId', 'p01'),
-        'abc'
-      );
-      assert.equal(e.message, 'Record not found: planet:abc');
-      schema.generateId = prevFn;
-    }
-  });
-
   test('#peekRecord - existing record', async function(assert) {
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     assert.strictEqual(
@@ -95,36 +67,6 @@ module('Integration - Store', function(hooks) {
 
   test('#peekRecord - missing record', async function(assert) {
     assert.strictEqual(store.peekRecord('planet', 'fake'), undefined);
-  });
-
-  test('#peekRecordByKey - existing record', async function(assert) {
-    const jupiter = await store.addRecord({
-      type: 'planet',
-      name: 'Jupiter',
-      remoteId: 'p01'
-    });
-    assert.strictEqual(
-      store.peekRecordByKey('planet', 'remoteId', 'p01'),
-      jupiter,
-      'retrieved record'
-    );
-  });
-
-  test('#peekRecordByKey - missing record', async function(assert) {
-    assert.strictEqual(
-      store.keyMap.keyToId('planet', 'remoteId', 'p01'),
-      undefined,
-      'key is not in map'
-    );
-    assert.strictEqual(
-      store.peekRecordByKey('planet', 'remoteId', 'p01'),
-      undefined
-    );
-    assert.notStrictEqual(
-      store.keyMap.keyToId('planet', 'remoteId', 'p01'),
-      undefined,
-      'id has been generated for key'
-    );
   });
 
   test('#peekRecords', async function(assert) {
