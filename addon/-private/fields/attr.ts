@@ -1,10 +1,10 @@
 import { tracked } from '@glimmer/tracking';
-import { Dict } from '@orbit/utils';
+import { AttributeDefinition } from '@orbit/data';
 
 import Model from '../model';
 import { isFieldDescriptor } from '../utils/decorators';
 
-export default function attr(type: string, options: Dict<unknown> = {}) {
+export default function attr(type: string, options: AttributeDefinition = {}) {
   const trackedAttr = (target: any, key: string, desc: PropertyDescriptor) => {
     let trackedDesc = tracked(target, key, desc);
     let { get: originalGet, set: originalSet } = trackedDesc;

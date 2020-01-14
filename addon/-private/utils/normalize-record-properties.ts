@@ -1,19 +1,21 @@
 import {
   Schema,
   RecordRelationship,
-  Record,
+  Record as OrbitRecord,
   ModelDefinition,
   RecordIdentity
 } from '@orbit/data';
-import { deepSet, Dict } from '@orbit/utils';
+import { deepSet } from '@orbit/utils';
+
+export type Properties = Record<string, unknown>;
 
 export default function normalizeRecordProperties(
   schema: Schema,
-  properties: Dict<unknown>
+  properties: Properties
 ) {
   const { id, type } = properties;
   const modelDefinition = schema.getModel(type as string);
-  const record = { id, type } as Record;
+  const record = { id, type } as OrbitRecord;
 
   assignKeys(modelDefinition, record, properties);
   assignAttributes(modelDefinition, record, properties);
@@ -24,8 +26,8 @@ export default function normalizeRecordProperties(
 
 function assignKeys(
   modelDefinition: ModelDefinition,
-  record: Record,
-  properties: Dict<unknown>
+  record: OrbitRecord,
+  properties: Properties
 ) {
   const keys = modelDefinition.keys || {};
   for (let key of Object.keys(keys)) {
@@ -37,8 +39,8 @@ function assignKeys(
 
 function assignAttributes(
   modelDefinition: ModelDefinition,
-  record: Record,
-  properties: Dict<unknown>
+  record: OrbitRecord,
+  properties: Properties
 ) {
   const attributes = modelDefinition.attributes || {};
   for (let attribute of Object.keys(attributes)) {
@@ -50,8 +52,8 @@ function assignAttributes(
 
 function assignRelationships(
   modelDefinition: ModelDefinition,
-  record: Record,
-  properties: Dict<unknown>
+  record: OrbitRecord,
+  properties: Properties
 ) {
   const relationships = modelDefinition.relationships || {};
   for (let relationship of Object.keys(relationships)) {

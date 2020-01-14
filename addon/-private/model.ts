@@ -3,6 +3,7 @@ import { RecordIdentity, ModelDefinition } from '@orbit/data';
 
 import { HasOneRelation, HasManyRelation } from './relations';
 import Store from './store';
+import { Properties } from './utils/normalize-record-properties';
 
 export interface ModelSettings {
   identity: RecordIdentity;
@@ -74,10 +75,7 @@ export default class Model {
     return relationship;
   }
 
-  async update(
-    properties: Record<string, unknown> = {},
-    options?: object
-  ): Promise<void> {
+  async update(properties: Properties = {}, options?: object): Promise<void> {
     await this.store.updateRecord({ ...properties, ...this.identity }, options);
   }
 

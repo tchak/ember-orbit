@@ -1,11 +1,12 @@
 import { tracked } from '@glimmer/tracking';
+import { RelationshipDefinition } from '@orbit/data';
 
 import Model from '../model';
 import { isFieldDescriptor } from '../utils/decorators';
 
 export default function hasOne(
   type: string,
-  options: Record<string, unknown> = {}
+  options: Partial<RelationshipDefinition> = {}
 ) {
   const trackedHasOne = (
     target: any,

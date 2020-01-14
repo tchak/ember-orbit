@@ -17,7 +17,9 @@ import MemorySource, { MemorySourceMergeOptions } from '@orbit/memory';
 import Cache from './cache';
 import Model from './model';
 import ModelFactory from './model-factory';
-import normalizeRecordProperties from './utils/normalize-record-properties';
+import normalizeRecordProperties, {
+  Properties
+} from './utils/normalize-record-properties';
 import {
   FindRecordQueryBuilder,
   FindRecordsQueryBuilder,
@@ -126,7 +128,7 @@ export default class Store {
   }
 
   async addRecord<M extends Model = Model>(
-    properties = {},
+    properties: Properties = {},
     options?: object
   ): Promise<M> {
     let record = normalizeRecordProperties(this.source.schema, properties);
@@ -135,7 +137,7 @@ export default class Store {
   }
 
   async updateRecord<M extends Model = Model>(
-    properties = {},
+    properties: Properties = {},
     options?: object
   ): Promise<M> {
     let record = normalizeRecordProperties(this.source.schema, properties);
