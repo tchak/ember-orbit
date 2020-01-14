@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-escape */
 /**
  * Retrieves modules registered by type in the namespace of an Application or
  * Engine.
@@ -14,6 +13,7 @@ export default function(prefix, type) {
   moduleNames.forEach(moduleName => {
     var matches = regex.exec(moduleName);
     if (matches && matches.length === 1) {
+      // eslint-disable-next-line no-useless-escape
       let name = moduleName.match(/[^\/]+\/?$/)[0];
       found.push(name);
     }

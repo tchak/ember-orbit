@@ -19,7 +19,7 @@ module('Integration - Cache', function(hooks) {
   });
 
   test('liveQuery - adds record that becomes a match', async function(assert) {
-    const liveQuery = cache.liveQuery(q =>
+    const planets = cache.liveQuery(q =>
       q.findRecords('planet').filter({ attribute: 'name', value: 'Jupiter' })
     );
 
@@ -28,12 +28,16 @@ module('Integration - Cache', function(hooks) {
       type: 'planet',
       attributes: { name: 'Jupiter' }
     });
-    assert.equal(liveQuery.length, 0);
+
+    await planets[Symbol.asyncIterator]().next();
+    assert.equal(planets.length, 0);
 
     await store.update(t =>
       t.replaceAttribute({ type: 'planet', id: 'jupiter' }, 'name', 'Jupiter')
     );
-    assert.equal(liveQuery.length, 1);
+
+    await planets[Symbol.asyncIterator]().next();
+    assert.equal(planets.length, 1);
   });
 
   test('liveQuery - updates when matching record is added', async function(assert) {
@@ -43,20 +47,27 @@ module('Integration - Cache', function(hooks) {
       type: 'planet',
       name: 'Jupiter'
     });
-    assert.ok(planets.includes(jupiter));
+
+    await planets[Symbol.asyncIterator]().next();
+    assert.ok(planets.has(jupiter));
+    assert.deepEqual([...planets], [jupiter]);
   });
 
   test('liveQuery - updates when matching record is removed', async function(assert) {
     const planets = cache.liveQuery(q => q.findRecords('planet'));
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     await store.removeRecord(jupiter);
-    assert.notOk(planets.includes(jupiter));
+
+    await planets[Symbol.asyncIterator]().next();
+    assert.notOk(planets.has(jupiter));
   });
 
   test('liveQuery - ignores non matching record', async function(assert) {
     const planets = cache.liveQuery(q => q.findRecords('planet'));
     const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
-    assert.notOk(planets.includes(callisto));
+
+    await planets[Symbol.asyncIterator]().next();
+    assert.notOk(planets.has(callisto));
   });
 
   test('liveQuery - removes record that has been removed', async function(assert) {
@@ -66,9 +77,13 @@ module('Integration - Cache', function(hooks) {
       t.addRecord({ type: 'planet', id: 'Jupiter' }),
       t.addRecord({ type: 'planet', id: 'Earth' })
     ]);
+
+    await planets[Symbol.asyncIterator]().next();
     assert.equal(planets.length, 2);
 
     await store.update(t => t.removeRecord({ type: 'planet', id: 'Jupiter' }));
+
+    await planets[Symbol.asyncIterator]().next();
     assert.equal(planets.length, 1);
   });
 
@@ -78,12 +93,16 @@ module('Integration - Cache', function(hooks) {
     );
 
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
+
+    await planets[Symbol.asyncIterator]().next();
     assert.equal(planets.length, 1);
-    assert.ok(planets.includes(jupiter));
+    assert.ok(planets.has(jupiter));
 
     await store.update(t => t.replaceAttribute(jupiter, 'name', 'Jupiter2'));
+
+    await planets[Symbol.asyncIterator]().next();
     assert.equal(planets.length, 0);
-    assert.notOk(planets.includes(jupiter));
+    assert.notOk(planets.has(jupiter));
   });
 
   test('#peekRecord - existing record', async function(assert) {

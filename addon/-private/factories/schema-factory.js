@@ -3,7 +3,7 @@ import { getOwner } from '@ember/application';
 import { Schema } from '@orbit/data';
 import { singularize, pluralize } from 'ember-inflector';
 
-import modulesOfType from '../system/modules-of-type';
+import modulesOfType from './modules-of-type';
 
 function getRegisteredModels(prefix, modelsCollection) {
   return modulesOfType(prefix, modelsCollection).map(camelize);
