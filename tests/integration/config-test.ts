@@ -3,10 +3,11 @@ import { createOwner, createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
 import Controller from '@ember/controller';
 import Route from '@ember/routing/route';
+import { Store } from 'ember-orbit';
 
 module('Integration - Config', function(hooks) {
   let owner;
-  let store;
+  let store: Store;
 
   hooks.beforeEach(function() {
     owner = createOwner();
@@ -37,7 +38,7 @@ module('Integration - Config', function(hooks) {
   });
 
   hooks.afterEach(function() {
-    store = null;
+    store.destroy();
     owner = null;
   });
 

@@ -3,9 +3,10 @@ import { createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
 
 import normalizeRecordProperties from 'ember-orbit/-private/utils/normalize-record-properties';
+import { Store } from 'ember-orbit';
 
 module('Integration - normalizeRecordProperties', function(hooks) {
-  let store;
+  let store: Store;
   const models = { planet: Planet, moon: Moon, star: Star };
 
   hooks.beforeEach(function() {
@@ -13,7 +14,7 @@ module('Integration - normalizeRecordProperties', function(hooks) {
   });
 
   hooks.afterEach(function() {
-    store = null;
+    store.destroy();
   });
 
   test('#normalizeRecordProperties', async function(assert) {
@@ -39,12 +40,12 @@ module('Integration - normalizeRecordProperties', function(hooks) {
     assert.equal(normalized.type, 'planet', 'normalized type');
     assert.deepEqual(normalized.attributes, { name: 'Jupiter' });
     assert.deepEqual(
-      normalized.relationships.moons,
+      normalized.relationships?.moons,
       { data: [{ type: 'moon', id: 'callisto' }] },
       'normalized hasMany'
     );
     assert.deepEqual(
-      normalized.relationships.sun,
+      normalized.relationships?.sun,
       { data: { type: 'star', id: 'sun' } },
       'normalized hasOne'
     );
@@ -73,7 +74,7 @@ module('Integration - normalizeRecordProperties', function(hooks) {
     });
 
     assert.deepEqual(
-      normalized.relationships.sun,
+      normalized.relationships?.sun,
       { data: null },
       'normalized nullable hasOne'
     );

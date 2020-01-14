@@ -3,14 +3,19 @@ import { setupTest } from 'ember-qunit';
 import { Planet } from 'dummy/tests/support/dummy-models';
 import { createStore } from 'dummy/tests/support/store';
 import { waitForSource } from 'ember-orbit/test-support';
+import { Store } from 'ember-orbit';
 
 module('waitForSource helper', function(hooks) {
-  let store;
+  let store: Store;
 
   setupTest(hooks);
 
   hooks.beforeEach(function() {
     store = createStore({ models: { planet: Planet } });
+  });
+
+  hooks.afterEach(function() {
+    store.destroy();
   });
 
   test('it resolves once all the pending requests to the given source have synced', async function(assert) {
