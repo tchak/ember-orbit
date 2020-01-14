@@ -8,16 +8,18 @@
 export default function(prefix, type) {
   const regex = new RegExp('^' + prefix + '/' + type + '/?/');
   const moduleNames = Object.keys(self.requirejs._eak_seen);
-  const found = [];
+  const found: string[] = [];
 
-  moduleNames.forEach(moduleName => {
-    var matches = regex.exec(moduleName);
+  for (let moduleName of moduleNames) {
+    const matches = regex.exec(moduleName);
     if (matches && matches.length === 1) {
       // eslint-disable-next-line no-useless-escape
-      let name = moduleName.match(/[^\/]+\/?$/)[0];
-      found.push(name);
+      let name = moduleName.match(/[^\/]+\/?$/);
+      if (name && name[0]) {
+        found.push(name[0]);
+      }
     }
-  });
+  }
 
   return found;
 }

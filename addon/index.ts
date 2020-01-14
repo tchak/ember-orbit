@@ -1,8 +1,20 @@
-export { default as Coordinator } from './services/coordinator';
-export { default as Schema } from './services/schema';
-export { default as Store, StoreSettings } from './services/store';
+export {
+  default as Coordinator,
+  CoordinatorInjections as CoordinatorSettings
+} from './services/coordinator';
+export {
+  default as Schema,
+  SchemaInjections as SchemaSettings
+} from './services/schema';
+export {
+  default as Store,
+  StoreInjections as StoreSettings,
+  Cache
+} from './services/store';
+export {
+  default as Model,
+  ModelInjections as ModelSettings
+} from './-private/model';
 export { default as attr } from './-private/fields/attr';
 export { default as hasMany } from './-private/fields/has-many';
 export { default as hasOne } from './-private/fields/has-one';
-export { default as Cache } from './-private/cache';
-export { default as Model } from './-private/model';

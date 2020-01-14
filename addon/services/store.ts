@@ -27,7 +27,9 @@ import {
   FindRelatedRecordsQueryBuilder
 } from '../-private/query-builders';
 
-export interface StoreSettings {
+export { Cache };
+
+export interface StoreInjections {
   source: MemorySource;
 }
 
@@ -35,14 +37,14 @@ export default class Store {
   private _source: MemorySource;
   private _cache: Cache;
 
-  static create(injections: StoreSettings): Store {
+  static create(injections: StoreInjections): Store {
     const owner = getOwner(injections);
     const store = new this(injections);
     setOwner(store, owner);
     return store;
   }
 
-  constructor(settings: StoreSettings) {
+  constructor(settings: StoreInjections) {
     this._source = settings.source;
 
     this._cache = new Cache({

@@ -1,7 +1,7 @@
 import { getOwner } from '@ember/application';
 import { singularize, pluralize } from 'ember-inflector';
 
-import { Schema } from '@orbit/data';
+import { Schema, SchemaSettings, ModelDefinition } from '@orbit/data';
 import { camelize } from '@orbit/utils';
 
 import modulesOfType from '../-private/utils/modules-of-type';
@@ -10,11 +10,15 @@ function getRegisteredModels(prefix, modelsCollection) {
   return modulesOfType(prefix, modelsCollection).map(camelize);
 }
 
+export interface SchemaInjections extends SchemaSettings {
+  modelNames?: string[];
+}
+
 export default {
-  create(injections = {}) {
+  create(injections: SchemaInjections = {}) {
     if (!injections.models) {
       const app = getOwner(injections);
-      const modelSchemas = {};
+      const models: Record<string, ModelDefinition> = {};
 
       const orbitConfig = app.lookup('ember-orbit:config');
       const modelNames =
@@ -25,12 +29,12 @@ export default {
         );
 
       for (let name of modelNames) {
-        modelSchemas[name] = app.factoryFor(
+        models[name] = app.factoryFor(
           `${orbitConfig.types.model}:${name}`
         ).class.schema;
       }
 
-      injections.models = modelSchemas;
+      injections.models = models;
     }
 
     if (!injections.pluralize) {
