@@ -25,11 +25,6 @@ module('Integration - Config', function(hooks) {
             models: 'orbit-models',
             sources: 'orbit-sources',
             strategies: 'orbit-strategies'
-          },
-          services: {
-            store: 'orbit-store',
-            coordinator: 'orbit-coordinator',
-            schema: 'data-schema'
           }
         }
       },
@@ -48,7 +43,7 @@ module('Integration - Config', function(hooks) {
 
   test('registrations respect config', async function(assert) {
     assert.equal(
-      owner.lookup('service:orbit-store'),
+      owner.lookup('service:store'),
       store,
       'store service registration is named from configuration'
     );
@@ -65,7 +60,7 @@ module('Integration - Config', function(hooks) {
       'schema is injected successfully on sources'
     );
     assert.ok(
-      owner.lookup('service:data-schema'),
+      owner.lookup('service:schema'),
       'unconfigured lookup type falls back to default configuration'
     );
   });

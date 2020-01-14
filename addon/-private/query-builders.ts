@@ -7,7 +7,7 @@ import {
   FindRelatedRecordsTerm
 } from '@orbit/data';
 
-import Store from './store';
+import Store from '../services/store';
 import Model from './model';
 
 export class FindRecordQueryBuilder<M extends Model = Model>

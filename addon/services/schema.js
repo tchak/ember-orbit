@@ -4,7 +4,7 @@ import { singularize, pluralize } from 'ember-inflector';
 import { Schema } from '@orbit/data';
 import { camelize } from '@orbit/utils';
 
-import modulesOfType from './modules-of-type';
+import modulesOfType from '../-private/utils/modules-of-type';
 
 function getRegisteredModels(prefix, modelsCollection) {
   return modulesOfType(prefix, modelsCollection).map(camelize);

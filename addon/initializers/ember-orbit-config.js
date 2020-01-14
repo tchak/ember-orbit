@@ -12,16 +12,7 @@ export const DEFAULT_ORBIT_CONFIG = {
     models: 'data-models',
     sources: 'data-sources',
     strategies: 'data-strategies'
-  },
-  services: {
-    store: 'store',
-    coordinator: 'data-coordinator',
-    schema: 'data-schema'
-  },
-  skipStoreService: false,
-  skipStoreInjections: false,
-  skipCoordinatorService: false,
-  skipSchemaService: false
+  }
 };
 
 export function initialize(application) {

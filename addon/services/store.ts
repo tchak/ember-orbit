@@ -14,18 +14,18 @@ import {
 } from '@orbit/data';
 import MemorySource, { MemorySourceMergeOptions } from '@orbit/memory';
 
-import Cache from './cache';
-import Model from './model';
-import ModelFactory from './model-factory';
+import Cache from '../-private/cache';
+import Model from '../-private/model';
+import ModelFactory from '../-private/model-factory';
 import normalizeRecordProperties, {
   Properties
-} from './utils/normalize-record-properties';
+} from '../-private/utils/normalize-record-properties';
 import {
   FindRecordQueryBuilder,
   FindRecordsQueryBuilder,
   FindRelatedRecordQueryBuilder,
   FindRelatedRecordsQueryBuilder
-} from './query-builders';
+} from '../-private/query-builders';
 
 export interface StoreSettings {
   source: MemorySource;

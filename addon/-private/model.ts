@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { RecordIdentity, ModelDefinition } from '@orbit/data';
 
 import { HasOneRelation, HasManyRelation } from './relations';
-import Store from './store';
+import Store from '../services/store';
 import { Properties } from './utils/normalize-record-properties';
 
 export interface ModelSettings {

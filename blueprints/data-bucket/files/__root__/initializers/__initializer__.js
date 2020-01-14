@@ -16,15 +16,6 @@ export function initialize(application) {
       `service:${bucketService}`
     );
   }
-
-  // Inject bucket into keyMap (if one is present)
-  if (config.services && !config.skipKeyMap) {
-    application.inject(
-      `service:${config.services.keyMap}`,
-      'bucket',
-      `service:${bucketService}`
-    );
-  }
 }
 
 export default {

@@ -1,7 +1,7 @@
 import { getOwner } from '@ember/application';
 import Coordinator from '@orbit/coordinator';
 
-import modulesOfType from './modules-of-type';
+import modulesOfType from '../-private/utils/modules-of-type';
 
 export default {
   create(injections = {}) {

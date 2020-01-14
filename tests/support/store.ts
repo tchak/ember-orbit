@@ -27,21 +27,20 @@ export function createStore(options) {
   const orbitConfig = owner.lookup('ember-orbit:config');
 
   if (models) {
-    const types: string[] = [];
-    Object.keys(models).forEach(type => {
+    const types: string[] = Object.keys(models).map(type => {
       owner.register(`${orbitConfig.types.model}:${type}`, models[type]);
-      types.push(type);
+      return type;
     });
 
     owner.register('ember-orbit-model-names:main', types, {
       instantiate: false
     });
     owner.inject(
-      `service:${orbitConfig.services.schema}`,
+      'service:schema',
       'modelNames',
       'ember-orbit-model-names:main'
     );
   }
 
-  return owner.lookup(`service:${orbitConfig.services.store}`) as Store;
+  return owner.lookup('service:store') as Store;
 }

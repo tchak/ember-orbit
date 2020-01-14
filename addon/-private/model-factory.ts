@@ -1,7 +1,7 @@
 import { getOwner } from '@ember/application';
 
 import { RecordIdentity, cloneRecordIdentity } from '@orbit/data';
-import Store from './store';
+import Store from '../services/store';
 import Model from './model';
 
 export default class ModelFactory {
