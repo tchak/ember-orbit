@@ -284,7 +284,7 @@ module('Integration - Model', function(hooks) {
 
     await waitForSource(store);
 
-    assert.ok(!cache.identityMap.has(identifier), 'removed from identity map');
+    assert.ok(!cache.has(identifier), 'removed from identity map');
   });
 
   test('#hasOne', async function(assert) {

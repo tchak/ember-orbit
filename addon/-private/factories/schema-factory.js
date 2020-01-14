@@ -1,7 +1,8 @@
-import { camelize } from '@ember/string';
 import { getOwner } from '@ember/application';
-import { Schema } from '@orbit/data';
 import { singularize, pluralize } from 'ember-inflector';
+
+import { Schema } from '@orbit/data';
+import { camelize } from '@orbit/utils';
 
 import modulesOfType from './modules-of-type';
 

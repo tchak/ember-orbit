@@ -1,5 +1,6 @@
 import { notifyPropertyChange } from '@ember/object';
 import { once } from '@ember/runloop';
+
 import { RecordIdentity } from '@orbit/data';
 
 import { SyncLiveQuery } from './live-query/sync-live-query';

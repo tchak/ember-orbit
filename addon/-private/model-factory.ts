@@ -1,34 +1,35 @@
 import { getOwner } from '@ember/application';
+
 import { RecordIdentity, cloneRecordIdentity } from '@orbit/data';
 import Store from './store';
 import Model from './model';
 
 export default class ModelFactory {
-  private _store: Store;
-  private _modelFactoryMap: Record<string, any>;
+  private store: Store;
+  private modelFactoryMap: Record<string, any>;
 
   constructor(store: Store) {
-    this._store = store;
-    this._modelFactoryMap = {};
+    this.store = store;
+    this.modelFactoryMap = {};
   }
 
-  create(identity: RecordIdentity): Model {
-    const modelFactory = this.modelFactoryFor(identity.type);
+  create(identifier: RecordIdentity): Model {
+    const modelFactory = this.modelFactoryFor(identifier.type);
 
     return modelFactory.create({
-      identity: cloneRecordIdentity(identity),
-      store: this._store
+      identity: cloneRecordIdentity(identifier),
+      store: this.store
     });
   }
 
   private modelFactoryFor(type: string) {
-    let modelFactory = this._modelFactoryMap[type];
+    let modelFactory = this.modelFactoryMap[type];
 
     if (!modelFactory) {
-      let owner = getOwner(this._store);
-      let orbitConfig = owner.lookup('ember-orbit:config');
+      const owner = getOwner(this.store);
+      const orbitConfig = owner.lookup('ember-orbit:config');
       modelFactory = owner.factoryFor(`${orbitConfig.types.model}:${type}`);
-      this._modelFactoryMap[type] = modelFactory;
+      this.modelFactoryMap[type] = modelFactory;
     }
 
     return modelFactory;

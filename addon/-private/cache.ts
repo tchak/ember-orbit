@@ -1,11 +1,11 @@
-import { Listener } from '@orbit/core';
 import { deepGet } from '@orbit/utils';
 import {
   buildQuery,
   RecordIdentity,
   QueryOrExpressions,
   RecordOperation,
-  Record
+  Record,
+  cloneRecordIdentity
 } from '@orbit/data';
 import { QueryResult, QueryResultData } from '@orbit/record-cache';
 import { MemoryCache } from '@orbit/memory';
@@ -18,27 +18,25 @@ import ModelFactory from './model-factory';
 import recordIdentitySerializer from './utils/record-identity-serializer';
 
 export interface CacheSettings {
-  sourceCache: MemoryCache;
+  cache: MemoryCache;
   modelFactory: ModelFactory;
 }
 
 export default class Cache {
-  private _sourceCache: MemoryCache;
-  private _modelFactory: ModelFactory;
+  private _cache: MemoryCache;
+  private _patchListener: () => void;
 
-  private _patchListener: Listener;
-
-  subscriptions = new Map<LiveArray, () => void>();
-  identityMap: IdentityMap<RecordIdentity, Model> = new IdentityMap({
+  protected modelFactory: ModelFactory;
+  protected subscriptions = new Map<LiveArray, () => void>();
+  protected identityMap: IdentityMap<RecordIdentity, Model> = new IdentityMap({
     serializer: recordIdentitySerializer
   });
 
   constructor(settings: CacheSettings) {
-    this._sourceCache = settings.sourceCache;
-    this._modelFactory = settings.modelFactory;
+    this._cache = settings.cache;
+    this.modelFactory = settings.modelFactory;
 
-    this._patchListener = this.generatePatchListener();
-    this._sourceCache.on('patch', this._patchListener);
+    this._patchListener = this._cache.on('patch', this.generatePatchListener());
   }
 
   has(identifier: RecordIdentity): boolean {
@@ -46,7 +44,7 @@ export default class Cache {
   }
 
   raw(identifier: RecordIdentity): Record | undefined {
-    return this._sourceCache.getRecordSync(identifier);
+    return this._cache.getRecordSync(identifier);
   }
 
   record(identifier: RecordIdentity): Model | undefined {
@@ -57,12 +55,12 @@ export default class Cache {
   }
 
   records(type: string | RecordIdentity[]): Model[] {
-    const identities = this._sourceCache.getRecordsSync(type);
+    const identities = this._cache.getRecordsSync(type);
     return this.lookup(identities) as Model[];
   }
 
   peekAttribute(identity: RecordIdentity, attribute: string): any {
-    const record = this._sourceCache.getRecordSync(identity);
+    const record = this.raw(identity);
     return record && deepGet(record, ['attributes', attribute]);
   }
 
@@ -70,7 +68,7 @@ export default class Cache {
     identity: RecordIdentity,
     relationship: string
   ): Model | null | undefined {
-    const relatedRecord = this._sourceCache.getRelatedRecordSync(
+    const relatedRecord = this._cache.getRelatedRecordSync(
       identity,
       relationship
     );
@@ -86,7 +84,7 @@ export default class Cache {
     identity: RecordIdentity,
     relationship: string
   ): Model[] | undefined {
-    const relatedRecords = this._sourceCache.getRelatedRecordsSync(
+    const relatedRecords = this._cache.getRelatedRecordsSync(
       identity,
       relationship
     );
@@ -107,9 +105,9 @@ export default class Cache {
       queryOrExpressions,
       options,
       id,
-      this._sourceCache.queryBuilder
+      this._cache.queryBuilder
     );
-    const result = this._sourceCache.query(query);
+    const result = this._cache.query(query);
     if (result) {
       return this.lookup(result, query.expressions.length);
     } else {
@@ -126,10 +124,10 @@ export default class Cache {
       queryOrExpressions,
       options,
       id,
-      this._sourceCache.queryBuilder
+      this._cache.queryBuilder
     );
 
-    const liveQuery = new SyncLiveQuery({ query, cache: this._sourceCache });
+    const liveQuery = new SyncLiveQuery({ query, cache: this._cache });
     const liveArray = new LiveArray({ cache: this, liveQuery });
     const subscription = liveArray.subscribe();
 
@@ -138,11 +136,18 @@ export default class Cache {
     return liveArray;
   }
 
-  unload(identity: RecordIdentity): void {
-    const record = this.identityMap.get(identity);
+  unload(identifier: RecordIdentity): void {
+    if (this.has(identifier)) {
+      this._cache.patch(t => t.removeRecord(identifier));
+    }
+    this._unload(identifier);
+  }
+
+  private _unload(identifier: RecordIdentity): void {
+    const record = this.identityMap.get(identifier);
     if (record) {
       record.disconnect();
-      this.identityMap.delete(identity);
+      this.identityMap.delete(identifier);
     }
   }
 
@@ -164,7 +169,7 @@ export default class Cache {
       let record = this.identityMap.get(result);
 
       if (!record) {
-        record = this._modelFactory.create(result);
+        record = this.modelFactory.create(result);
         this.identityMap.set(result, record);
       }
 
@@ -183,18 +188,18 @@ export default class Cache {
   }
 
   destroy(): void {
-    this._sourceCache.off('patch', this._patchListener);
+    this._patchListener();
 
     for (let record of this.identityMap.values()) {
       record.disconnect();
     }
 
-    for (let [, subscription] of this.subscriptions) {
+    for (let subscription of this.subscriptions.values()) {
       subscription();
     }
 
-    this.subscriptions.clear();
     this.identityMap.clear();
+    this.subscriptions.clear();
   }
 
   private notifyPropertyChange(
@@ -211,28 +216,21 @@ export default class Cache {
   private generatePatchListener(): (operation: RecordOperation) => void {
     return (operation: RecordOperation) => {
       const record = operation.record as Record;
-      const { type, id, keys, attributes, relationships } = record;
-      const identity = { type, id };
+      const { attributes, relationships } = record;
+      const identity = cloneRecordIdentity(record);
 
       switch (operation.op) {
         case 'updateRecord':
-          for (let properties of [attributes, keys, relationships]) {
+          for (let properties of [attributes, relationships]) {
             if (properties) {
-              for (let property of Object.keys(properties)) {
-                if (
-                  Object.prototype.hasOwnProperty.call(properties, property)
-                ) {
-                  this.notifyPropertyChange(identity, property);
-                }
+              for (let property of Object.getOwnPropertyNames(properties)) {
+                this.notifyPropertyChange(identity, property);
               }
             }
           }
           break;
         case 'replaceAttribute':
           this.notifyPropertyChange(identity, operation.attribute);
-          break;
-        case 'replaceKey':
-          this.notifyPropertyChange(identity, operation.key);
           break;
         case 'replaceRelatedRecord':
         case 'replaceRelatedRecords':
@@ -241,7 +239,7 @@ export default class Cache {
           this.notifyPropertyChange(identity, operation.relationship);
           break;
         case 'removeRecord':
-          this.unload(identity);
+          this._unload(identity);
           break;
       }
     };

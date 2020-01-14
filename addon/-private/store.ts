@@ -46,7 +46,7 @@ export default class Store {
     this._source = settings.source;
 
     this._cache = new Cache({
-      sourceCache: this.source.cache,
+      cache: this.source.cache,
       modelFactory: new ModelFactory(this)
     });
   }
