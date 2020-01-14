@@ -27,8 +27,8 @@ export default class ModelFactory {
 
     if (!modelFactory) {
       const owner = getOwner(this.store);
-      const orbitConfig = owner.lookup('ember-orbit:config');
-      modelFactory = owner.factoryFor(`${orbitConfig.types.model}:${type}`);
+      const { types } = owner.lookup('ember-orbit:config');
+      modelFactory = owner.factoryFor(`${types.model}:${type}`);
       this.modelFactoryMap[type] = modelFactory;
     }
 

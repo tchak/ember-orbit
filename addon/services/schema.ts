@@ -20,18 +20,13 @@ export default {
       const app = getOwner(injections);
       const models: Record<string, ModelDefinition> = {};
 
-      const orbitConfig = app.lookup('ember-orbit:config');
+      const { types, collections } = app.lookup('ember-orbit:config');
       const modelNames =
         injections.modelNames ||
-        getRegisteredModels(
-          app.base.modulePrefix,
-          orbitConfig.collections.models
-        );
+        getRegisteredModels(app.base.modulePrefix, collections.models);
 
       for (let name of modelNames) {
-        models[name] = app.factoryFor(
-          `${orbitConfig.types.model}:${name}`
-        ).class.schema;
+        models[name] = app.factoryFor(`${types.model}:${name}`).class.schema;
       }
 
       injections.models = models;
