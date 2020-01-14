@@ -11,7 +11,8 @@
   "repository": "https://github.com/orbitjs/ember-orbit",
   "license": "MIT",
   "contributors": [
-    "Dan Gebhardt (http://www.cerebris.com)"
+    "Dan Gebhardt (http://www.cerebris.com)",
+    "Paul Chavard"
   ],
   "scripts": {
     "build": "ember build",
