@@ -1,7 +1,7 @@
 import { Planet, Moon, Star } from 'dummy/tests/support/dummy-models';
 import { createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
-import { waitForSource } from 'ember-orbit/test-support';
+import { waitForSource, waitForLiveArray } from 'ember-orbit/test-support';
 import { Store, Cache, Model } from 'ember-orbit';
 
 module('Integration - Cache', function(hooks) {
@@ -29,14 +29,14 @@ module('Integration - Cache', function(hooks) {
       attributes: { name: 'Jupiter' }
     });
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.equal(planets.length, 0);
 
     await store.update(t =>
       t.replaceAttribute({ type: 'planet', id: 'jupiter' }, 'name', 'Jupiter')
     );
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.equal(planets.length, 1);
   });
 
@@ -48,7 +48,7 @@ module('Integration - Cache', function(hooks) {
       name: 'Jupiter'
     });
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.ok(planets.has(jupiter));
     assert.deepEqual([...planets], [jupiter]);
   });
@@ -58,7 +58,7 @@ module('Integration - Cache', function(hooks) {
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
     await store.removeRecord(jupiter);
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.notOk(planets.has(jupiter));
   });
 
@@ -66,7 +66,7 @@ module('Integration - Cache', function(hooks) {
     const planets = cache.liveQuery(q => q.findRecords('planet'));
     const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.notOk(planets.has(callisto));
   });
 
@@ -78,12 +78,12 @@ module('Integration - Cache', function(hooks) {
       t.addRecord({ type: 'planet', id: 'Earth' })
     ]);
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.equal(planets.length, 2);
 
     await store.update(t => t.removeRecord({ type: 'planet', id: 'Jupiter' }));
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.equal(planets.length, 1);
   });
 
@@ -94,13 +94,13 @@ module('Integration - Cache', function(hooks) {
 
     const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.equal(planets.length, 1);
     assert.ok(planets.has(jupiter));
 
     await store.update(t => t.replaceAttribute(jupiter, 'name', 'Jupiter2'));
 
-    await planets[Symbol.asyncIterator]().next();
+    await waitForLiveArray(planets);
     assert.equal(planets.length, 0);
     assert.notOk(planets.has(jupiter));
   });

@@ -19,3 +19,7 @@ export async function waitForSource(sourceOrSourceName) {
   await source.requestQueue.process();
   await source.syncQueue.process();
 }
+
+export async function waitForLiveArray(liveArray) {
+  await liveArray[Symbol.asyncIterator]().next();
+}
