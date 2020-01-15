@@ -26,7 +26,7 @@ export default class Cache {
   private _patchListener: () => void;
 
   protected modelFactory: ModelFactory;
-  protected subscriptions = new Map<LiveArray, () => void>();
+  protected liveArrays = new Set<LiveArray>();
   protected identityMap: IdentityMap<RecordIdentity, Model> = new IdentityMap({
     serializer: recordIdentitySerializer
   });
@@ -123,9 +123,10 @@ export default class Cache {
 
     const liveQuery = new SyncLiveQuery({ query, cache: this._cache });
     const liveArray = new LiveArray<M>({ cache: this, liveQuery });
-    const subscription = liveArray.subscribe();
 
-    this.subscriptions.set(liveArray, subscription);
+    liveArray.subscribe();
+
+    this.liveArrays.add(liveArray);
 
     return liveArray;
   }
@@ -173,14 +174,6 @@ export default class Cache {
     return null;
   }
 
-  unsubscribeLiveArray(liveArray: LiveArray) {
-    const subscription = this.subscriptions.get(liveArray);
-    if (subscription) {
-      this.subscriptions.delete(liveArray);
-      subscription();
-    }
-  }
-
   destroy(): void {
     this._patchListener();
 
@@ -188,12 +181,12 @@ export default class Cache {
       record.disconnect();
     }
 
-    for (let subscription of this.subscriptions.values()) {
-      subscription();
+    for (let liveArray of this.liveArrays) {
+      liveArray.unsubscribe();
     }
 
     this.identityMap.clear();
-    this.subscriptions.clear();
+    this.liveArrays.clear();
   }
 
   private notifyPropertyChange(
