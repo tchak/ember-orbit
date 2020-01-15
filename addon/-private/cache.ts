@@ -115,7 +115,7 @@ export default class Cache {
     }
   }
 
-  liveQuery(
+  liveQuery<M extends Model = Model>(
     queryOrExpressions: QueryOrExpressions,
     options?: object,
     id?: string
@@ -128,7 +128,7 @@ export default class Cache {
     );
 
     const liveQuery = new SyncLiveQuery({ query, cache: this._cache });
-    const liveArray = new LiveArray({ cache: this, liveQuery });
+    const liveArray = new LiveArray<M>({ cache: this, liveQuery });
     const subscription = liveArray.subscribe();
 
     this.subscriptions.set(liveArray, subscription);

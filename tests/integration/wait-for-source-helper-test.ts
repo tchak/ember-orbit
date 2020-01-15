@@ -25,7 +25,7 @@ module('waitForSource helper', function(hooks) {
       backup.update(transform);
     });
 
-    await store.addRecord({ type: 'planet', name: 'Earth' });
+    await store.records('planet').add({ name: 'Earth' });
 
     await waitForSource(backup);
 
@@ -42,7 +42,7 @@ module('waitForSource helper', function(hooks) {
       backup.update(transform);
     });
 
-    await store.addRecord({ type: 'planet', name: 'Earth' });
+    await store.records('planet').add({ name: 'Earth' });
 
     await waitForSource('backup');
 

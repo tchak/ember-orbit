@@ -17,13 +17,13 @@ export default function hasOne(
       throw new TypeError('@hasOne() require `type` argument.');
     }
 
-    let trackedDesc = tracked(target, key, desc);
-    let { get: originalGet, set: originalSet } = trackedDesc;
+    const trackedDesc = tracked(target, key, desc);
+    const { get: originalGet, set: originalSet } = trackedDesc;
 
-    let defaultAssigned = new WeakSet();
+    const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {
-      let value = record.hasOne(key).value;
+      const value = record.relatedRecord(key).value;
       setValue(record, value);
     }
 
@@ -40,10 +40,10 @@ export default function hasOne(
     }
 
     function set(this: Model, value: any) {
-      const oldValue = this.hasOne(key).value;
+      const oldValue = this.relatedRecord(key).value;
 
       if (value !== oldValue) {
-        this.hasOne(key).replace(value);
+        this.relatedRecord(key).replace(value);
 
         return setValue(this, value);
       }

@@ -17,13 +17,13 @@ export default function hasMany(
       throw new TypeError('@hasMany() require `type` argument.');
     }
 
-    let trackedDesc = tracked(target, key, desc);
-    let { get: originalGet, set: originalSet } = trackedDesc;
+    const trackedDesc = tracked(target, key, desc);
+    const { get: originalGet, set: originalSet } = trackedDesc;
 
-    let defaultAssigned = new WeakSet();
+    const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {
-      let value = record.hasMany(key).value;
+      const value = record.relatedRecords(key).value;
       defaultAssigned.add(record);
       return originalSet!.call(record, value);
     }

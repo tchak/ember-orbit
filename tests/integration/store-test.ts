@@ -23,9 +23,8 @@ module('Integration - Store', function(hooks) {
     assert.strictEqual(store.syncQueue, store.source.syncQueue);
   });
 
-  test('#addRecord', async function(assert) {
-    const planet = await store.addRecord<Planet>({
-      type: 'planet',
+  test('#records.add', async function(assert) {
+    const planet = await store.records<Planet>('planet').add({
       name: 'Earth'
     });
 
@@ -34,68 +33,40 @@ module('Integration - Store', function(hooks) {
     assert.equal(planet.name, 'Earth');
   });
 
-  test('#addRecord - with blocking sync updates', async function(assert) {
+  test('#records.add - with blocking sync updates', async function(assert) {
     store.source.on('beforeUpdate', transform => {
       return store.source.sync(transform);
     });
 
-    const planet = await store.addRecord<Planet>({
-      type: 'planet',
+    const planet = await store.records<Planet>('planet').add({
       name: 'Earth'
     });
+
     assert.ok(planet instanceof Planet);
     assert.ok(planet.id, 'assigned id');
     assert.equal(planet.name, 'Earth');
   });
 
-  test('#findRecord', async function(assert) {
-    const earth = await store.addRecord<Planet>({
-      type: 'planet',
+  test('#record', async function(assert) {
+    const earth = await store.records<Planet>('planet').add({
       name: 'Earth'
     });
-    const planet = await store.findRecord({ type: 'planet', id: earth.id });
+    const planet = await store.record({ type: 'planet', id: earth.id });
     assert.strictEqual(planet, earth);
   });
 
-  test('#findRecord - missing record', async function(assert) {
+  test('#record - missing record', async function(assert) {
     try {
-      await store.findRecord({ type: 'planet', id: 'jupiter' });
+      await store.record({ type: 'planet', id: 'jupiter' });
     } catch (e) {
       assert.equal(e.message, 'Record not found: planet:jupiter');
     }
   });
 
-  test('#peekRecord - existing record', async function(assert) {
-    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    assert.strictEqual(
-      store.peekRecord({ type: 'planet', id: jupiter.id }),
-      jupiter,
-      'retrieved record'
-    );
-  });
-
-  test('#peekRecord - missing record', async function(assert) {
-    assert.strictEqual(
-      store.peekRecord({ type: 'planet', id: 'fake' }),
-      undefined
-    );
-  });
-
-  test('#peekRecords', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    await store.addRecord({ type: 'moon', name: 'Io' });
-
-    const planets = store.peekRecords('planet');
-    assert.equal(planets.length, 2);
-    assert.ok(planets.includes(earth));
-    assert.ok(planets.includes(jupiter));
-  });
-
-  test('#removeRecord - when passed a record, it should serialize its identity in a `removeRecord` op', async function(assert) {
+  test('#record.remove() - when passed a record, it should serialize its identity in a `removeRecord` op', async function(assert) {
     assert.expect(2);
 
-    const record = await store.addRecord({ type: 'planet', name: 'Earth' });
+    const record = await store.records('planet').add({ name: 'Earth' });
 
     store.on('update', data => {
       assert.deepEqual(
@@ -110,19 +81,19 @@ module('Integration - Store', function(hooks) {
       );
     });
 
-    await store.removeRecord(record);
+    await store.record(record).remove();
 
     try {
-      await store.findRecord({ type: 'planet', id: record.id });
+      await store.record({ type: 'planet', id: record.id });
     } catch (error) {
       assert.ok(error.message.match(/Record not found/));
     }
   });
 
-  test('#removeRecord - when passed an identity', async function(assert) {
+  test('#record.remove() - when passed an identity', async function(assert) {
     assert.expect(2);
 
-    const record = await store.addRecord({ type: 'planet', name: 'Earth' });
+    const record = await store.records('planet').add({ name: 'Earth' });
 
     store.on('update', data => {
       assert.deepEqual(
@@ -137,10 +108,10 @@ module('Integration - Store', function(hooks) {
       );
     });
 
-    await store.removeRecord({ type: 'planet', id: record.id });
+    await store.record(record).remove();
 
     try {
-      await store.findRecord({ type: 'planet', id: record.id });
+      await store.record(record);
     } catch (error) {
       assert.ok(error.message.match(/Record not found/));
     }
@@ -249,13 +220,11 @@ module('Integration - Store', function(hooks) {
   });
 
   test('replacing a record invalidates attributes and relationships', async function(assert) {
-    const planet = await store.addRecord<Planet>({
-      type: 'planet',
+    const planet = await store.records<Planet>('planet').add({
       id: 'p1',
       name: 'Earth'
     });
-    const star = await store.addRecord<Star>({
-      type: 'star',
+    const star = await store.records<Star>('star').add({
       id: 's1',
       name: 'The Sun'
     });
@@ -278,14 +247,14 @@ module('Integration - Store', function(hooks) {
   });
 
   test('#query - findRecord', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
+    const earth = await store.records('planet').add({ name: 'Earth' });
     const record = await store.query(q => q.findRecord(earth));
     assert.strictEqual(record, earth);
   });
 
   test('#query - findRecords', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    const jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
+    const earth = await store.records('planet').add({ name: 'Earth' });
+    const jupiter = await store.records('planet').add({ name: 'Jupiter' });
     const records = await store.query(q => q.findRecords('planet'));
 
     assert.equal(records.length, 2);
@@ -294,9 +263,8 @@ module('Integration - Store', function(hooks) {
   });
 
   test('#query - findRelatedRecord', async function(assert) {
-    const sun = await store.addRecord({ type: 'star', name: 'The Sun' });
-    const jupiter = await store.addRecord({
-      type: 'planet',
+    const sun = await store.records('star').add({ name: 'The Sun' });
+    const jupiter = await store.records('planet').add({
       name: 'Jupiter',
       sun
     });
@@ -307,10 +275,9 @@ module('Integration - Store', function(hooks) {
   });
 
   test('#query - findRelatedRecords', async function(assert) {
-    const io = await store.addRecord({ type: 'moon', name: 'Io' });
-    const callisto = await store.addRecord({ type: 'moon', name: 'Callisto' });
-    const jupiter = await store.addRecord({
-      type: 'planet',
+    const io = await store.records('moon').add({ name: 'Io' });
+    const callisto = await store.records('moon').add({ name: 'Callisto' });
+    const jupiter = await store.records('planet').add({
       name: 'Jupiter',
       moons: [io, callisto]
     });
@@ -324,8 +291,8 @@ module('Integration - Store', function(hooks) {
   });
 
   test('#query - filter', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    await store.addRecord({ type: 'planet', name: 'Jupiter' });
+    const earth = await store.records('planet').add({ name: 'Earth' });
+    await store.records('planet').add({ name: 'Jupiter' });
     const records = await store.query(q =>
       q.findRecords('planet').filter({ attribute: 'name', value: 'Earth' })
     );
@@ -354,27 +321,33 @@ module('Integration - Store', function(hooks) {
   //   assert.equal(liveQuery.length, 1);
   // });
 
-  test('#findRecords().peek()', async function(assert) {
-    let earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    let jupiter = await store.addRecord({ type: 'planet', name: 'Jupiter' });
+  test('#records.peek()', async function(assert) {
+    let earth = await store.records<Planet>('planet').add({
+      name: 'Earth'
+    });
+    let jupiter = await store.records<Planet>('planet').add({
+      name: 'Jupiter'
+    });
 
-    let records = store.findRecords('planet').peek();
+    let records = store.records<Planet>('planet').peek() as Planet[];
     assert.equal(records.length, 2);
     assert.ok(records.includes(earth));
     assert.ok(records.includes(jupiter));
   });
 
-  test('#findRecord().peek()', async function(assert) {
-    const earth = await store.addRecord({ type: 'planet', name: 'Earth' });
-    await store.addRecord({ type: 'planet', name: 'Jupiter' });
-    const record = store.findRecord({ type: 'planet', id: earth.id }).peek();
+  test('#record.peek()', async function(assert) {
+    const earth = await store.records<Planet>('planet').add({
+      name: 'Earth'
+    });
+    await store.records<Planet>('planet').add({ name: 'Jupiter' });
+    const record = store.record(earth).peek();
 
     assert.strictEqual(record, earth);
   });
 
-  test('#findRecord().peek() - missing record', function(assert) {
+  test('#record.peek() - missing record', function(assert) {
     try {
-      store.findRecord({ type: 'planet', id: 'jupiter' }).peek();
+      store.record({ type: 'planet', id: 'jupiter' }).peek();
     } catch (e) {
       assert.equal(
         e.message,
@@ -386,8 +359,7 @@ module('Integration - Store', function(hooks) {
 
   test('#fork - creates a clone of a base store', async function(assert) {
     const forkedStore = store.fork();
-    const jupiter = await forkedStore.addRecord({
-      type: 'planet',
+    const jupiter = await forkedStore.records('planet').add({
       name: 'Jupiter',
       classification: 'gas giant'
     });
@@ -404,8 +376,7 @@ module('Integration - Store', function(hooks) {
 
   test('#merge - merges a forked store back into a base store', async function(assert) {
     const forkedStore = store.fork();
-    const jupiter = await forkedStore.addRecord({
-      type: 'planet',
+    const jupiter = await forkedStore.records('planet').add({
       name: 'Jupiter',
       classification: 'gas giant'
     });

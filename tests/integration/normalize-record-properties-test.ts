@@ -18,13 +18,11 @@ module('Integration - normalizeRecordProperties', function(hooks) {
   });
 
   test('#normalizeRecordProperties', async function(assert) {
-    const callisto = await store.addRecord({
-      type: 'moon',
+    const callisto = await store.records('moon').add({
       id: 'callisto',
       name: 'Callisto'
     });
-    const sun = await store.addRecord({
-      type: 'star',
+    const sun = await store.records('star').add({
       id: 'sun',
       name: 'The Sun'
     });

@@ -7,25 +7,20 @@ import {
   RecordIdentity,
   Transform,
   TransformOrOperations,
-  cloneRecordIdentity,
   RecordOperation,
   Schema,
-  TransformBuilder
+  TransformBuilder,
+  buildTransform
 } from '@orbit/data';
 import MemorySource, { MemorySourceMergeOptions } from '@orbit/memory';
 
 import Cache from '../-private/cache';
 import Model from '../-private/model';
 import ModelFactory from '../-private/model-factory';
-import normalizeRecordProperties, {
-  Properties
-} from '../-private/utils/normalize-record-properties';
 import {
-  FindRecordQueryBuilder,
-  FindRecordsQueryBuilder,
-  FindRelatedRecordQueryBuilder,
-  FindRelatedRecordsQueryBuilder
-} from '../-private/query-builders';
+  MutableRecordTerm,
+  MutableRecordsTerm
+} from 'ember-orbit/-private/terms';
 
 export { Cache };
 
@@ -121,101 +116,33 @@ export default class Store {
     return this.cache.lookup(result, query.expressions.length);
   }
 
-  update(
+  async update(
     transformOrTransforms: TransformOrOperations,
     options?: object,
     id?: string
   ): Promise<any> {
-    return this.source.update(transformOrTransforms, options, id);
-  }
-
-  async addRecord<M extends Model = Model>(
-    properties: Properties = {},
-    options?: object
-  ): Promise<M> {
-    let record = normalizeRecordProperties(this.source.schema, properties);
-    await this.update(t => t.addRecord(record), options);
-    return this.cache.lookup(record) as M;
-  }
-
-  async updateRecord<M extends Model = Model>(
-    properties: Properties = {},
-    options?: object
-  ): Promise<M> {
-    let record = normalizeRecordProperties(this.source.schema, properties);
-    await this.update(t => t.updateRecord(record), options);
-    return this.cache.lookup(record) as M;
-  }
-
-  async removeRecord(record: RecordIdentity, options?: object): Promise<void> {
-    const identity = cloneRecordIdentity(record);
-    await this.update(t => t.removeRecord(identity), options);
-  }
-
-  findRecord<M extends Model = Model>(
-    identifier: RecordIdentity,
-    options?: object
-  ): FindRecordQueryBuilder<M> {
-    const queryBuilder = new FindRecordQueryBuilder<M>(this, identifier);
-
-    if (options) {
-      return queryBuilder.options(options);
-    }
-    return queryBuilder;
-  }
-
-  findRecords<M extends Model = Model>(
-    type: string | RecordIdentity[],
-    options?: object
-  ): FindRecordsQueryBuilder<M> {
-    const queryBuilder = new FindRecordsQueryBuilder<M>(this, type);
-
-    if (options) {
-      return queryBuilder.options(options);
-    }
-    return queryBuilder;
-  }
-
-  findRelatedRecord(
-    identifier: RecordIdentity,
-    relationship: string,
-    options?: object
-  ): FindRelatedRecordQueryBuilder {
-    const queryBuilder = new FindRelatedRecordQueryBuilder(
-      this,
-      identifier,
-      relationship
+    const transform = buildTransform(
+      transformOrTransforms,
+      options,
+      id,
+      this.transformBuilder
     );
-
-    if (options) {
-      return queryBuilder.options(options);
-    }
-    return queryBuilder;
+    const result = await this.source.update(transform);
+    return this.cache.lookup(result, transform.operations.length);
   }
 
-  findRelatedRecords(
+  record<M extends Model = Model>(
     identifier: RecordIdentity,
-    relationship: string,
     options?: object
-  ): FindRelatedRecordsQueryBuilder {
-    const queryBuilder = new FindRelatedRecordsQueryBuilder(
-      this,
-      identifier,
-      relationship
-    );
-
-    if (options) {
-      return queryBuilder.options(options);
-    }
-    return queryBuilder;
+  ): MutableRecordTerm<M> {
+    return new MutableRecordTerm<M>(this, identifier, options);
   }
 
-  peekRecord(identifier: RecordIdentity): Model | undefined {
-    return this.cache.record(identifier);
-  }
-
-  peekRecords(type: string | RecordIdentity[]): Model[] {
-    return this.cache.records(type);
+  records<M extends Model = Model>(
+    typeOrIdentifiers: string | RecordIdentity[],
+    options?: object
+  ): MutableRecordsTerm<M> {
+    return new MutableRecordsTerm<M>(this, typeOrIdentifiers, options);
   }
 
   on(event: string, listener: Listener): void {

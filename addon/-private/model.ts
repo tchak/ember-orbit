@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { RecordIdentity, ModelDefinition } from '@orbit/data';
 
-import { HasOneRelation, HasManyRelation } from './relations';
 import Store from '../services/store';
 import { Properties } from './utils/normalize-record-properties';
+import { MutableRelatedRecordTerm, MutableRelatedRecordsTerm } from './terms';
 
 export interface ModelSettings {
   identity: RecordIdentity;
@@ -18,8 +18,6 @@ export default class Model {
   identity!: RecordIdentity;
 
   private _store?: Store;
-  private _hasManyRelations: Record<string, HasManyRelation> = {};
-  private _hasOneRelations: Record<string, HasOneRelation> = {};
 
   constructor(identity: RecordIdentity, store: Store) {
     this.identity = identity;
@@ -53,34 +51,20 @@ export default class Model {
     );
   }
 
-  hasMany(name: string): HasManyRelation {
-    let relationship = this._hasManyRelations[name];
-    if (!relationship) {
-      this._hasManyRelations[name] = relationship = new HasManyRelation(
-        this,
-        name
-      );
-    }
-    return relationship;
+  relatedRecord<M extends Model = Model>(name: string, options?: object) {
+    return new MutableRelatedRecordTerm<M>(this.store, this, name, options);
   }
 
-  hasOne(name: string): HasOneRelation {
-    let relationship = this._hasOneRelations[name];
-    if (!relationship) {
-      this._hasOneRelations[name] = relationship = new HasOneRelation(
-        this,
-        name
-      );
-    }
-    return relationship;
+  relatedRecords<M extends Model = Model>(name: string, options?: object) {
+    return new MutableRelatedRecordsTerm<M>(this.store, this, name, options);
   }
 
   async update(properties: Properties = {}, options?: object): Promise<void> {
-    await this.store.updateRecord({ ...properties, ...this.identity }, options);
+    await this.store.record(this.identity, options).update(properties);
   }
 
   async remove(options?: object): Promise<void> {
-    await this.store.removeRecord(this.identity, options);
+    await this.store.record(this.identity, options).remove();
   }
 
   disconnect(): void {
