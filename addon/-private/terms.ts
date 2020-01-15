@@ -21,7 +21,8 @@ import {
   AttributeSortSpecifier,
   SortOrder,
   FindRelatedRecord,
-  FindRelatedRecords
+  FindRelatedRecords,
+  ReplaceAttributeOperation
 } from '@orbit/data';
 import { deepMerge, clone, isObject, deepGet } from '@orbit/utils';
 
@@ -35,7 +36,7 @@ import normalizeRecordProperties, {
 export class BaseTerm {
   store: Store;
   expression: QueryExpression;
-  _options?: object;
+  protected _options?: object;
 
   constructor(store: Store, expression: QueryExpression, options?: object) {
     this.store = store;
@@ -48,7 +49,7 @@ export class BaseTerm {
   }
 }
 
-export class RecordTerm<M extends Model = Model> extends BaseTerm
+export class RecordTerm<M extends Model> extends BaseTerm
   implements PromiseLike<M> {
   expression: FindRecord;
 
@@ -57,7 +58,7 @@ export class RecordTerm<M extends Model = Model> extends BaseTerm
     this.expression = expression as FindRecord;
   }
 
-  peek(): M | undefined {
+  peek(): M {
     return this.store.cache.query(this.toQueryExpression(), this._options) as M;
   }
 
@@ -79,14 +80,38 @@ export class RecordTerm<M extends Model = Model> extends BaseTerm
   }
 }
 
-export class MutableRecordTerm<M extends Model = Model> extends RecordTerm<M> {
+export class RootRecordTerm<M extends Model> extends RecordTerm<M> {
   constructor(store: Store, record: RecordIdentity, options?: object) {
-    let expression: FindRecord = {
+    const expression: FindRecord = {
       op: 'findRecord',
       record: cloneRecordIdentity(record)
     };
 
     super(store, expression, options);
+  }
+
+  options(options: object): RootRecordTerm<M> {
+    return new RootRecordTerm<M>(
+      this.store,
+      this.expression.record,
+      mergeOptions(this._options, options)
+    );
+  }
+
+  get meta() {
+    const record = this.store.cache.raw(this.expression.record);
+    if (record) {
+      return record.meta;
+    }
+    return undefined;
+  }
+
+  get links() {
+    const record = this.store.cache.raw(this.expression.record);
+    if (record) {
+      return record.links;
+    }
+    return undefined;
   }
 
   async remove(options?: object): Promise<void> {
@@ -113,7 +138,7 @@ export class MutableRecordTerm<M extends Model = Model> extends RecordTerm<M> {
 
 // RecordsTerm
 
-export class RecordsTerm<M extends Model = Model> extends BaseTerm
+export class RecordsTerm<M extends Model> extends BaseTerm
   implements PromiseLike<M[]> {
   expression: FindRecords;
 
@@ -130,45 +155,41 @@ export class RecordsTerm<M extends Model = Model> extends BaseTerm
     );
   }
 
-  live(): RecordsTerm<M> {
-    const options = mergeOptions(this._options, {
-      source: { cache: { live: true } }
-    });
-    return new RecordsTerm<M>(this.store, this.expression, options);
+  live(): LiveRecordsTerm<M> {
+    return new LiveRecordsTerm<M>(this.store, this.expression, this._options);
   }
 
   sort(...params: SortQBParam[]): RecordsTerm<M> {
     const specifiers = params.map(sortParamToSpecifier);
     const expression: FindRecords = clone(this.expression);
     expression.sort = (expression.sort || []).concat(specifiers);
-    return new RecordsTerm<M>(this.store, expression);
+    return new RecordsTerm<M>(this.store, expression, this._options);
   }
 
   page(param: PageQBParam): RecordsTerm<M> {
     const expression: FindRecords = clone(this.expression);
     expression.page = pageParamToSpecifier(param);
-    return new RecordsTerm<M>(this.store, expression);
+    return new RecordsTerm<M>(this.store, expression, this._options);
   }
 
   filter(...params: FilterQBParam[]): RecordsTerm<M> {
     const specifiers = params.map(filterParamToSpecifier);
     const expression: FindRecords = clone(this.expression);
     expression.filter = (expression.filter || []).concat(specifiers);
-    return new RecordsTerm<M>(this.store, expression);
+    return new RecordsTerm<M>(this.store, expression, this._options);
   }
 
-  peek(): M[] | LiveArray<M> {
-    if (isLive(this._options)) {
-      return this.store.cache.liveQuery<M>(
-        this.toQueryExpression(),
-        this._options
-      );
-    }
-
-    return this.store.cache.query(
+  peek(): M[] {
+    const records = this.store.cache.query(
       this.toQueryExpression(),
       this._options
-    ) as M[];
+    );
+
+    if (DEBUG) {
+      Object.freeze(records);
+    }
+
+    return records as M[];
   }
 
   then<T = M[]>(
@@ -177,23 +198,79 @@ export class RecordsTerm<M extends Model = Model> extends BaseTerm
   ): Promise<T> {
     return this.store
       .query(this.toQueryExpression(), this._options)
-      .then(result => {
-        if (isLive(this._options)) {
-          return this.peek();
+      .then(records => {
+        if (DEBUG) {
+          Object.freeze(records);
         }
-        return result as M[];
+
+        return records as M[];
       })
       .then<T>(onfullfiled, onrejected);
   }
 }
 
-export class MutableRecordsTerm<M extends Model = Model> extends RecordsTerm {
+export class LiveRecordsTerm<M extends Model> extends BaseTerm
+  implements PromiseLike<LiveArray<M>> {
+  expression: FindRecords;
+
+  constructor(store: Store, expression: QueryExpression, options?: object) {
+    super(store, expression, options);
+    this.expression = expression as FindRecords;
+  }
+
+  options(options: object): LiveRecordsTerm<M> {
+    return new LiveRecordsTerm<M>(
+      this.store,
+      this.expression,
+      mergeOptions(this._options, options)
+    );
+  }
+
+  sort(...params: SortQBParam[]): LiveRecordsTerm<M> {
+    const specifiers = params.map(sortParamToSpecifier);
+    const expression: FindRecords = clone(this.expression);
+    expression.sort = (expression.sort || []).concat(specifiers);
+    return new LiveRecordsTerm<M>(this.store, expression, this._options);
+  }
+
+  page(param: PageQBParam): LiveRecordsTerm<M> {
+    const expression: FindRecords = clone(this.expression);
+    expression.page = pageParamToSpecifier(param);
+    return new LiveRecordsTerm<M>(this.store, expression, this._options);
+  }
+
+  filter(...params: FilterQBParam[]): LiveRecordsTerm<M> {
+    const specifiers = params.map(filterParamToSpecifier);
+    const expression: FindRecords = clone(this.expression);
+    expression.filter = (expression.filter || []).concat(specifiers);
+    return new LiveRecordsTerm<M>(this.store, expression, this._options);
+  }
+
+  peek(): LiveArray<M> {
+    return this.store.cache.liveQuery<M>(
+      this.toQueryExpression(),
+      this._options
+    );
+  }
+
+  then<T = LiveArray<M>>(
+    onfullfiled?: null | ((value: any) => T | PromiseLike<T>),
+    onrejected?: null | ((reason: any) => PromiseLike<never>)
+  ): Promise<T> {
+    return this.store
+      .query(this.toQueryExpression(), this._options)
+      .then(() => this.peek())
+      .then<T>(onfullfiled, onrejected);
+  }
+}
+
+export class RootRecordsTerm<M extends Model> extends RecordsTerm<M> {
   constructor(
     store: Store,
     typeOrIdentities?: string | RecordIdentity[],
     options?: object
   ) {
-    let expression: FindRecords = {
+    const expression: FindRecords = {
       op: 'findRecords'
     };
 
@@ -204,6 +281,14 @@ export class MutableRecordsTerm<M extends Model = Model> extends RecordsTerm {
     }
 
     super(store, expression, options);
+  }
+
+  options(options: object): RootRecordsTerm<M> {
+    return new RootRecordsTerm<M>(
+      this.store,
+      this.expression.type ? this.expression.type : this.expression.records,
+      mergeOptions(this._options, options)
+    );
   }
 
   async add(properties: Properties = {}, options?: object) {
@@ -221,13 +306,21 @@ export class MutableRecordsTerm<M extends Model = Model> extends RecordsTerm {
 
 // RelatedRecordTerm
 
-export class RelatedRecordTerm<M extends Model = Model> extends BaseTerm
+export class RelatedRecordTerm<M extends Model> extends BaseTerm
   implements PromiseLike<M> {
   expression: FindRelatedRecord;
 
   constructor(store: Store, expression: QueryExpression, options?: object) {
     super(store, expression, options);
     this.expression = expression as FindRelatedRecord;
+  }
+
+  options(options: object): RelatedRecordTerm<M> {
+    return new RelatedRecordTerm<M>(
+      this.store,
+      this.expression,
+      mergeOptions(this._options, options)
+    );
   }
 
   peek(): M | null | undefined {
@@ -245,17 +338,9 @@ export class RelatedRecordTerm<M extends Model = Model> extends BaseTerm
       .query(this.toQueryExpression(), this._options)
       .then<T>(onfullfiled, onrejected);
   }
-
-  options(options: object): RelatedRecordTerm<M> {
-    return new RelatedRecordTerm<M>(
-      this.store,
-      this.expression,
-      mergeOptions(this._options, options)
-    );
-  }
 }
 
-export class MutableRelatedRecordTerm<
+export class RootRelatedRecordTerm<
   M extends Model = Model
 > extends RelatedRecordTerm<M> {
   constructor(
@@ -264,13 +349,22 @@ export class MutableRelatedRecordTerm<
     relationship: string,
     options?: object
   ) {
-    let expression: FindRelatedRecord = {
+    const expression: FindRelatedRecord = {
       op: 'findRelatedRecord',
       record: cloneRecordIdentity(record),
       relationship
     };
 
     super(store, expression, options);
+  }
+
+  options(options: object): RootRelatedRecordTerm<M> {
+    return new RootRelatedRecordTerm<M>(
+      this.store,
+      this.expression.record,
+      this.expression.relationship,
+      mergeOptions(this._options, options)
+    );
   }
 
   get value() {
@@ -280,6 +374,30 @@ export class MutableRelatedRecordTerm<
         this.expression.relationship
       ) || null
     );
+  }
+
+  get meta() {
+    const record = this.store.cache.raw(this.expression.record);
+    if (record) {
+      return deepGet(record, [
+        'relationships',
+        this.expression.relationship,
+        'meta'
+      ]);
+    }
+    return undefined;
+  }
+
+  get links() {
+    const record = this.store.cache.raw(this.expression.record);
+    if (record) {
+      return deepGet(record, [
+        'relationships',
+        this.expression.relationship,
+        'links'
+      ]);
+    }
+    return undefined;
   }
 
   async replace(
@@ -300,7 +418,7 @@ export class MutableRelatedRecordTerm<
 
 // RelatedRecordsTerm
 
-export class RelatedRecordsTerm<M extends Model = Model> extends BaseTerm
+export class RelatedRecordsTerm<M extends Model> extends BaseTerm
   implements PromiseLike<M[]> {
   expression: FindRelatedRecords;
 
@@ -317,45 +435,45 @@ export class RelatedRecordsTerm<M extends Model = Model> extends BaseTerm
     );
   }
 
-  live(): RelatedRecordsTerm<M> {
-    const options = mergeOptions(this._options, {
-      source: { cache: { live: true } }
-    });
-    return new RelatedRecordsTerm<M>(this.store, this.expression, options);
+  live(): LiveRelatedRecordsTerm<M> {
+    return new LiveRelatedRecordsTerm<M>(
+      this.store,
+      this.expression,
+      this._options
+    );
   }
 
   sort(...params: SortQBParam[]): RecordsTerm<M> {
     const specifiers = params.map(sortParamToSpecifier);
     const expression: FindRecords = clone(this.expression);
     expression.sort = (expression.sort || []).concat(specifiers);
-    return new RecordsTerm<M>(this.store, expression);
+    return new RecordsTerm<M>(this.store, expression, this._options);
   }
 
   page(param: PageQBParam): RecordsTerm<M> {
     const expression: FindRecords = clone(this.expression);
     expression.page = pageParamToSpecifier(param);
-    return new RecordsTerm<M>(this.store, expression);
+    return new RecordsTerm<M>(this.store, expression, this._options);
   }
 
   filter(...params: FilterQBParam[]): RecordsTerm<M> {
     const specifiers = params.map(filterParamToSpecifier);
     const expression: FindRecords = clone(this.expression);
     expression.filter = (expression.filter || []).concat(specifiers);
-    return new RecordsTerm<M>(this.store, expression);
+    return new RecordsTerm<M>(this.store, expression, this._options);
   }
 
-  peek(): M[] | LiveArray<M> {
-    if (isLive(this._options)) {
-      return this.store.cache.liveQuery<M>(
-        this.toQueryExpression(),
-        this._options
-      );
-    }
-
-    return this.store.cache.query(
+  peek(): M[] {
+    const records = this.store.cache.query(
       this.toQueryExpression(),
       this._options
-    ) as M[];
+    );
+
+    if (DEBUG) {
+      Object.freeze(records);
+    }
+
+    return records as M[];
   }
 
   then<T = M[]>(
@@ -364,19 +482,75 @@ export class RelatedRecordsTerm<M extends Model = Model> extends BaseTerm
   ): Promise<T> {
     return this.store
       .query(this.toQueryExpression(), this._options)
-      .then(result => {
-        if (isLive(this._options)) {
-          return this.peek();
+      .then(records => {
+        if (DEBUG) {
+          Object.freeze(records);
         }
-        return result as M[];
+
+        return records as M[];
       })
       .then<T>(onfullfiled, onrejected);
   }
 }
 
-export class MutableRelatedRecordsTerm<
-  M extends Model = Model
-> extends RelatedRecordsTerm<M> {
+export class LiveRelatedRecordsTerm<M extends Model> extends BaseTerm
+  implements PromiseLike<LiveArray<M>> {
+  expression: FindRelatedRecords;
+
+  constructor(store: Store, expression: QueryExpression, options?: object) {
+    super(store, expression, options);
+    this.expression = expression as FindRelatedRecords;
+  }
+
+  options(options: object): LiveRelatedRecordsTerm<M> {
+    return new LiveRelatedRecordsTerm<M>(
+      this.store,
+      this.expression,
+      mergeOptions(this._options, options)
+    );
+  }
+
+  sort(...params: SortQBParam[]): LiveRelatedRecordsTerm<M> {
+    const specifiers = params.map(sortParamToSpecifier);
+    const expression: FindRecords = clone(this.expression);
+    expression.sort = (expression.sort || []).concat(specifiers);
+    return new LiveRelatedRecordsTerm<M>(this.store, expression, this._options);
+  }
+
+  page(param: PageQBParam): LiveRelatedRecordsTerm<M> {
+    const expression: FindRecords = clone(this.expression);
+    expression.page = pageParamToSpecifier(param);
+    return new LiveRelatedRecordsTerm<M>(this.store, expression, this._options);
+  }
+
+  filter(...params: FilterQBParam[]): LiveRelatedRecordsTerm<M> {
+    const specifiers = params.map(filterParamToSpecifier);
+    const expression: FindRecords = clone(this.expression);
+    expression.filter = (expression.filter || []).concat(specifiers);
+    return new LiveRelatedRecordsTerm<M>(this.store, expression, this._options);
+  }
+
+  peek(): LiveArray<M> {
+    return this.store.cache.liveQuery<M>(
+      this.toQueryExpression(),
+      this._options
+    );
+  }
+
+  then<T = LiveArray<M>>(
+    onfullfiled?: null | ((value: any) => T | PromiseLike<T>),
+    onrejected?: null | ((reason: any) => PromiseLike<never>)
+  ): Promise<T> {
+    return this.store
+      .query(this.toQueryExpression(), this._options)
+      .then(() => this.peek())
+      .then<T>(onfullfiled, onrejected);
+  }
+}
+
+export class RootRelatedRecordsTerm<M extends Model> extends RelatedRecordsTerm<
+  M
+> {
   constructor(
     store: Store,
     record: RecordIdentity,
@@ -392,6 +566,15 @@ export class MutableRelatedRecordsTerm<
     super(store, expression, options);
   }
 
+  options(options: object): RootRelatedRecordsTerm<M> {
+    return new RootRelatedRecordsTerm<M>(
+      this.store,
+      this.expression.record,
+      this.expression.relationship,
+      mergeOptions(this._options, options)
+    );
+  }
+
   get value(): M[] {
     const records =
       this.store.cache.relatedRecords(
@@ -404,6 +587,30 @@ export class MutableRelatedRecordsTerm<
     }
 
     return records as M[];
+  }
+
+  get meta() {
+    const record = this.store.cache.raw(this.expression.record);
+    if (record) {
+      return deepGet(record, [
+        'relationships',
+        this.expression.relationship,
+        'meta'
+      ]);
+    }
+    return undefined;
+  }
+
+  get links() {
+    const record = this.store.cache.raw(this.expression.record);
+    if (record) {
+      return deepGet(record, [
+        'relationships',
+        this.expression.relationship,
+        'links'
+      ]);
+    }
+    return undefined;
   }
 
   async add(record: RecordIdentity, options?: object): Promise<void> {
@@ -443,8 +650,58 @@ export class MutableRelatedRecordsTerm<
   }
 }
 
-function isLive(options?: object): boolean {
-  return !!options && !!deepGet(options, ['source', 'cache', 'live']);
+export class AttributeTerm {
+  store: Store;
+  operation: ReplaceAttributeOperation;
+  protected _options?: object;
+
+  constructor(
+    store: Store,
+    operation: ReplaceAttributeOperation,
+    options?: object
+  ) {
+    this.store = store;
+    this.operation = operation;
+    this._options = options;
+  }
+
+  options(options: object): AttributeTerm {
+    return new AttributeTerm(
+      this.store,
+      this.operation,
+      mergeOptions(this._options, options)
+    );
+  }
+
+  async replace(value: unknown, options?: object) {
+    await this.store.update(
+      Object.assign({}, this.operation, { value }),
+      mergeOptions(this._options, options)
+    );
+  }
+}
+
+export class RootAttributeTerm extends AttributeTerm {
+  constructor(
+    store: Store,
+    record: RecordIdentity,
+    attribute: string,
+    options?: object
+  ) {
+    const operation: ReplaceAttributeOperation = {
+      op: 'replaceAttribute',
+      record: cloneRecordIdentity(record),
+      attribute,
+      value: undefined
+    };
+
+    super(store, operation, options);
+  }
+
+  get value() {
+    const record = this.store.cache.raw(this.operation.record);
+    return record && deepGet(record, ['attributes', this.operation.attribute]);
+  }
 }
 
 function mergeOptions(

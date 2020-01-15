@@ -1,4 +1,3 @@
-import { deepGet } from '@orbit/utils';
 import {
   buildQuery,
   RecordIdentity,
@@ -57,11 +56,6 @@ export default class Cache {
   records(type: string | RecordIdentity[]): Model[] {
     const identities = this._cache.getRecordsSync(type);
     return this.lookup(identities) as Model[];
-  }
-
-  peekAttribute(identity: RecordIdentity, attribute: string): any {
-    const record = this.raw(identity);
-    return record && deepGet(record, ['attributes', attribute]);
   }
 
   relatedRecord(

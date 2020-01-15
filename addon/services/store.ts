@@ -17,10 +17,7 @@ import MemorySource, { MemorySourceMergeOptions } from '@orbit/memory';
 import Cache from '../-private/cache';
 import Model from '../-private/model';
 import ModelFactory from '../-private/model-factory';
-import {
-  MutableRecordTerm,
-  MutableRecordsTerm
-} from 'ember-orbit/-private/terms';
+import { RootRecordTerm, RootRecordsTerm } from '../-private/terms';
 
 export { Cache };
 
@@ -134,15 +131,15 @@ export default class Store {
   record<M extends Model = Model>(
     identifier: RecordIdentity,
     options?: object
-  ): MutableRecordTerm<M> {
-    return new MutableRecordTerm<M>(this, identifier, options);
+  ): RootRecordTerm<M> {
+    return new RootRecordTerm<M>(this, identifier, options);
   }
 
   records<M extends Model = Model>(
     typeOrIdentifiers: string | RecordIdentity[],
     options?: object
-  ): MutableRecordsTerm<M> {
-    return new MutableRecordsTerm<M>(this, typeOrIdentifiers, options);
+  ): RootRecordsTerm<M> {
+    return new RootRecordsTerm<M>(this, typeOrIdentifiers, options);
   }
 
   on(event: string, listener: Listener): void {

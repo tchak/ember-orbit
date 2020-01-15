@@ -19,7 +19,6 @@ export default function hasMany(
 
     const trackedDesc = tracked(target, key, desc);
     const { get: originalGet, set: originalSet } = trackedDesc;
-
     const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {

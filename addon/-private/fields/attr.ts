@@ -6,13 +6,12 @@ import { isFieldDescriptor } from '../utils/decorators';
 
 export default function attr(type: string, options: AttributeDefinition = {}) {
   const trackedAttr = (target: any, key: string, desc: PropertyDescriptor) => {
-    let trackedDesc = tracked(target, key, desc);
-    let { get: originalGet, set: originalSet } = trackedDesc;
-
-    let defaultAssigned = new WeakSet();
+    const trackedDesc = tracked(target, key, desc);
+    const { get: originalGet, set: originalSet } = trackedDesc;
+    const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {
-      let value = record.getAttribute(key);
+      const value = record.attribute(key).value;
       setValue(record, value);
     }
 
@@ -29,10 +28,10 @@ export default function attr(type: string, options: AttributeDefinition = {}) {
     }
 
     function set(this: Model, value: any) {
-      const oldValue = this.getAttribute(key);
+      const oldValue = this.attribute(key).value;
 
       if (value !== oldValue) {
-        this.replaceAttribute(key, value);
+        this.attribute(key).replace(value);
         return setValue(this, value);
       }
 

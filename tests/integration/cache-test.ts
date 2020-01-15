@@ -127,23 +127,6 @@ module('Integration - Cache', function(hooks) {
     assert.ok(planets.includes(jupiter));
   });
 
-  test('#peekAttribute - existing record + attribute', async function(assert) {
-    const jupiter = await store.records('planet').add({ name: 'Jupiter' });
-    assert.equal(cache.peekAttribute(jupiter, 'name'), 'Jupiter');
-  });
-
-  test('#peekAttribute - missing record', async function(assert) {
-    assert.strictEqual(
-      cache.peekAttribute({ type: 'planet', id: 'fake' }, 'name'),
-      undefined
-    );
-  });
-
-  test('#peekAttribute - existing record, missing attribute', async function(assert) {
-    const jupiter = await store.records('planet').add({ name: 'Jupiter' });
-    assert.strictEqual(cache.peekAttribute(jupiter, 'fake'), undefined);
-  });
-
   test('#relatedRecord - existing record + relationship', async function(assert) {
     const jupiter = await store.records<Planet>('planet').add({
       name: 'Jupiter'

@@ -229,25 +229,17 @@ module('Integration - Model', function(hooks) {
     assert.equal(record.name, 'Jupiter2');
   });
 
-  test('#getAttribute', async function(assert) {
+  test('#attribute.value', async function(assert) {
     const record = await store.records<Planet>('planet').add({
       name: 'Jupiter'
     });
-    assert.equal(record.getAttribute('name'), 'Jupiter');
+    assert.equal(record.attribute('name').value, 'Jupiter');
   });
 
-  test('#replaceAttribute', async function(assert) {
+  test('#attribute.replace()', async function(assert) {
     const record = await store.records('planet').add({ name: 'Jupiter' });
-    await record.replaceAttribute('name', 'Jupiter2');
-    assert.equal(record.getAttribute('name'), 'Jupiter2');
-  });
-
-  test('#replaceAttribute', async function(assert) {
-    const record = await store.records<Planet>('planet').add({
-      name: 'Jupiter'
-    });
-    await record.replaceAttribute('name', 'Jupiter2');
-    assert.equal(record.getAttribute('name'), 'Jupiter2');
+    await record.attribute('name').replace('Jupiter2');
+    assert.equal(record.attribute('name').value, 'Jupiter2');
   });
 
   test('destroy model', async function(assert) {

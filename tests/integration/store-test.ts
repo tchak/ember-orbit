@@ -3,6 +3,7 @@ import { createStore } from 'dummy/tests/support/store';
 import { buildTransform } from '@orbit/data';
 import { module, test } from 'qunit';
 import { Store } from 'ember-orbit';
+import { waitForLiveArray } from 'ember-orbit/test-support';
 
 module('Integration - Store', function(hooks) {
   let store: Store;
@@ -301,25 +302,24 @@ module('Integration - Store', function(hooks) {
     assert.strictEqual(records[0], earth);
   });
 
-  // test('liveQuery - adds record that becomes a match', async function(assert) {
-  //   store.addRecord({
-  //     id: 'jupiter',
-  //     type: 'planet',
-  //     attributes: { name: 'Jupiter2' }
-  //   });
+  test('#records.live - adds record that becomes a match', async function(assert) {
+    const jupiter = await store.records('planet').add({
+      id: 'jupiter',
+      attributes: { name: 'Jupiter2' }
+    });
 
-  //   let liveQuery = await store
-  //     .findRecords('planet')
-  //     .live()
-  //     .filter({ attribute: 'name', value: 'Jupiter' });
+    const liveArray = await store
+      .records<Planet>('planet')
+      .filter({ attribute: 'name', value: 'Jupiter' })
+      .live();
 
-  //   assert.equal(liveQuery.length, 0);
+    assert.equal(liveArray.length, 0);
 
-  //   await store.update(t =>
-  //     t.replaceAttribute({ type: 'planet', id: 'jupiter' }, 'name', 'Jupiter')
-  //   );
-  //   assert.equal(liveQuery.length, 1);
-  // });
+    await store.record(jupiter).update({ name: 'Jupiter' });
+
+    await waitForLiveArray(liveArray);
+    assert.equal(liveArray.length, 1);
+  });
 
   test('#records.peek()', async function(assert) {
     let earth = await store.records<Planet>('planet').add({
@@ -329,7 +329,7 @@ module('Integration - Store', function(hooks) {
       name: 'Jupiter'
     });
 
-    let records = store.records<Planet>('planet').peek() as Planet[];
+    let records: Planet[] = store.records<Planet>('planet').peek();
     assert.equal(records.length, 2);
     assert.ok(records.includes(earth));
     assert.ok(records.includes(jupiter));

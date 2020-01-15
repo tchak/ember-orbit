@@ -3,11 +3,11 @@ import { RecordIdentity, ModelDefinition } from '@orbit/data';
 
 import Store from '../services/store';
 import { Properties } from './utils/normalize-record-properties';
-import { MutableRelatedRecordTerm, MutableRelatedRecordsTerm } from './terms';
-
-export interface ModelSettings {
-  identity: RecordIdentity;
-}
+import {
+  RootRelatedRecordTerm,
+  RootRelatedRecordsTerm,
+  RootAttributeTerm
+} from './terms';
 
 export interface ModelInjections {
   identity: RecordIdentity;
@@ -36,27 +36,22 @@ export default class Model {
     return !this._store;
   }
 
-  getAttribute(field: string): any {
-    return this.store.cache.peekAttribute(this.identity, field);
+  attribute(name: string, options?: object): RootAttributeTerm {
+    return new RootAttributeTerm(this.store, this, name, options);
   }
 
-  async replaceAttribute(
-    attribute: string,
-    value: unknown,
+  relatedRecord<M extends Model = Model>(
+    name: string,
     options?: object
-  ): Promise<void> {
-    await this.store.update(
-      t => t.replaceAttribute(this.identity, attribute, value),
-      options
-    );
+  ): RootRelatedRecordTerm<M> {
+    return new RootRelatedRecordTerm<M>(this.store, this, name, options);
   }
 
-  relatedRecord<M extends Model = Model>(name: string, options?: object) {
-    return new MutableRelatedRecordTerm<M>(this.store, this, name, options);
-  }
-
-  relatedRecords<M extends Model = Model>(name: string, options?: object) {
-    return new MutableRelatedRecordsTerm<M>(this.store, this, name, options);
+  relatedRecords<M extends Model = Model>(
+    name: string,
+    options?: object
+  ): RootRelatedRecordsTerm<M> {
+    return new RootRelatedRecordsTerm<M>(this.store, this, name, options);
   }
 
   async update(properties: Properties = {}, options?: object): Promise<void> {
