@@ -80,7 +80,7 @@ module('Integration - Model', function(hooks) {
       cache.has({ type: 'star', id: record.id }),
       'record does not exist in cache'
     );
-    assert.ok(record.disconnected, 'record has been disconnected from store');
+    assert.ok(!record.$connected, 'record has been disconnected from store');
     assert.throws(
       () => record.name,
       Error,
@@ -229,17 +229,11 @@ module('Integration - Model', function(hooks) {
     assert.equal(record.name, 'Jupiter2');
   });
 
-  test('#attribute.value', async function(assert) {
+  test('#getAttribute', async function(assert) {
     const record = await store.records<Planet>('planet').add({
       name: 'Jupiter'
     });
-    assert.equal(record.attribute('name').value, 'Jupiter');
-  });
-
-  test('#attribute.replace()', async function(assert) {
-    const record = await store.records('planet').add({ name: 'Jupiter' });
-    await record.attribute('name').replace('Jupiter2');
-    assert.equal(record.attribute('name').value, 'Jupiter2');
+    assert.equal(record.$getAttribute<string>('name'), 'Jupiter');
   });
 
   test('destroy model', async function(assert) {
@@ -249,7 +243,7 @@ module('Integration - Model', function(hooks) {
       name: 'Jupiter'
     });
     const identifier = record.identity;
-    record.destroy();
+    record.unload();
 
     await waitForSource(store);
 
@@ -263,17 +257,17 @@ module('Integration - Model', function(hooks) {
     const sun = await store.records<Star>('star').add({ name: 'Sun' });
 
     assert.strictEqual(jupiter.sun, null);
-    assert.strictEqual(jupiter.relatedRecord('sun').value, null);
+    assert.strictEqual(jupiter.$getRelatedRecord('sun'), undefined);
 
     await jupiter.relatedRecord('sun').replace(sun);
 
     assert.strictEqual(jupiter.sun, sun);
-    assert.strictEqual(jupiter.relatedRecord('sun').value, sun);
+    assert.strictEqual(jupiter.$getRelatedRecord('sun'), sun);
     assert.strictEqual(await jupiter.relatedRecord('sun'), sun);
 
     await jupiter.relatedRecord('sun').replace(null);
     assert.strictEqual(jupiter.sun, null);
-    assert.strictEqual(jupiter.relatedRecord('sun').value, null);
+    assert.strictEqual(jupiter.$getRelatedRecord('sun'), null);
   });
 
   test('#relatedRecords always returns the same relationship', async function(assert) {
@@ -293,7 +287,7 @@ module('Integration - Model', function(hooks) {
     );
     assert.deepEqual(
       jupiter.moons,
-      jupiter.relatedRecords('moons').value,
+      jupiter.relatedRecords('moons').peek(),
       'hasMany().value returns the expected array'
     );
     assert.deepEqual(
@@ -313,15 +307,17 @@ module('Integration - Model', function(hooks) {
     const europa = await store.records('moon').add({ name: 'Europa' });
     const io = await store.records('moon').add({ name: 'Io' });
 
-    assert.deepEqual(jupiter.relatedRecords('moons').value, []);
+    assert.deepEqual(jupiter.$getRelatedRecords('moons'), undefined);
+    assert.deepEqual(jupiter.moons, []);
 
     await jupiter.relatedRecords('moons').add(europa);
 
-    assert.deepEqual(jupiter.relatedRecords('moons').value, [europa]);
+    assert.deepEqual(jupiter.$getRelatedRecords('moons'), [europa]);
+    assert.deepEqual(jupiter.moons, [europa]);
 
     await jupiter.relatedRecords('moons').add(io);
 
-    assert.deepEqual(jupiter.relatedRecords('moons').value, [europa, io]);
+    assert.deepEqual(jupiter.relatedRecords('moons').peek(), [europa, io]);
   });
 
   test('#relatedRecords.remove()', async function(assert) {
@@ -332,15 +328,15 @@ module('Integration - Model', function(hooks) {
       moons: [europa, io]
     });
 
-    assert.deepEqual(jupiter.relatedRecords('moons').value, [europa, io]);
+    assert.deepEqual(jupiter.$getRelatedRecords('moons'), [europa, io]);
 
     await jupiter.relatedRecords('moons').remove(europa);
 
-    assert.deepEqual(jupiter.relatedRecords('moons').value, [io]);
+    assert.deepEqual(jupiter.$getRelatedRecords('moons'), [io]);
 
     await jupiter.relatedRecords('moons').remove(io);
 
-    assert.deepEqual(jupiter.relatedRecords('moons').value, []);
+    assert.deepEqual(jupiter.relatedRecords('moons').peek(), []);
   });
 
   test('#update - updates attribute and relationships (with records)', async function(assert) {

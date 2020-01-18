@@ -10,28 +10,28 @@ export default function attr(type: string, options: AttributeDefinition = {}) {
     const { get: originalGet, set: originalSet } = trackedDesc;
     const defaultAssigned = new WeakSet();
 
-    function setDefaultValue(record: Model) {
-      const value = record.attribute(key).value;
+    function setDefaultValue(record: Model): void {
+      const value = record.$getAttribute(key);
       setValue(record, value);
     }
 
-    function setValue(record: any, value: any) {
+    function setValue(record: any, value: unknown) {
       defaultAssigned.add(record);
       return originalSet!.call(record, value);
     }
 
-    function get(this: Model) {
+    function get(this: Model): unknown {
       if (!defaultAssigned.has(this)) {
         setDefaultValue(this);
       }
       return originalGet!.call(this);
     }
 
-    function set(this: Model, value: any) {
-      const oldValue = this.attribute(key).value;
+    function set(this: Model, value: unknown) {
+      const oldValue = this.$getAttribute(key);
 
       if (value !== oldValue) {
-        this.attribute(key).replace(value);
+        this.update({ [key]: value });
         return setValue(this, value);
       }
 

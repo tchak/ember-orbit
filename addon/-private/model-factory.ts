@@ -1,16 +1,17 @@
 import { getOwner } from '@ember/application';
 
+import MemorySource from '@orbit/memory';
 import { RecordIdentity, cloneRecordIdentity } from '@orbit/data';
-import Store from '../services/store';
+
 import Model from './model';
 
 export default class ModelFactory {
-  private store: Store;
+  private source: MemorySource;
   private modelFactoryMap: Record<string, any>;
 
-  constructor(store: Store) {
-    this.store = store;
-    this.modelFactoryMap = {};
+  constructor(source: MemorySource) {
+    this.source = source;
+    this.modelFactoryMap = new Map();
   }
 
   create(identifier: RecordIdentity): Model {
@@ -18,18 +19,18 @@ export default class ModelFactory {
 
     return modelFactory.create({
       identity: cloneRecordIdentity(identifier),
-      store: this.store
+      source: this.source
     });
   }
 
   private modelFactoryFor(type: string) {
-    let modelFactory = this.modelFactoryMap[type];
+    let modelFactory = this.modelFactoryMap.get(type);
 
     if (!modelFactory) {
-      const owner = getOwner(this.store);
+      const owner = getOwner(this);
       const { types } = owner.lookup('ember-orbit:config');
       modelFactory = owner.factoryFor(`${types.model}:${type}`);
-      this.modelFactoryMap[type] = modelFactory;
+      this.modelFactoryMap.set(type, modelFactory);
     }
 
     return modelFactory;

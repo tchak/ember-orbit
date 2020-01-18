@@ -254,9 +254,13 @@ module('Integration - Store', function(hooks) {
   });
 
   test('#query - findRecords', async function(assert) {
-    const earth = await store.records('planet').add({ name: 'Earth' });
-    const jupiter = await store.records('planet').add({ name: 'Jupiter' });
-    const records = await store.query(q => q.findRecords('planet'));
+    const earth = await store.records<Planet>('planet').add({ name: 'Earth' });
+    const jupiter = await store
+      .records<Planet>('planet')
+      .add({ name: 'Jupiter' });
+    const records = (await store.query(q =>
+      q.findRecords('planet')
+    )) as Planet[];
 
     assert.equal(records.length, 2);
     assert.ok(records.includes(earth));
@@ -282,9 +286,9 @@ module('Integration - Store', function(hooks) {
       name: 'Jupiter',
       moons: [io, callisto]
     });
-    const records = await store.query(q =>
+    const records = (await store.query(q =>
       q.findRelatedRecords(jupiter.identity, 'moons')
-    );
+    )) as Moon[];
 
     assert.deepEqual(records, [io, callisto]);
     assert.strictEqual(records[0], io);
@@ -294,9 +298,9 @@ module('Integration - Store', function(hooks) {
   test('#query - filter', async function(assert) {
     const earth = await store.records('planet').add({ name: 'Earth' });
     await store.records('planet').add({ name: 'Jupiter' });
-    const records = await store.query(q =>
+    const records = (await store.query(q =>
       q.findRecords('planet').filter({ attribute: 'name', value: 'Earth' })
-    );
+    )) as Planet[];
 
     assert.deepEqual(records, [earth]);
     assert.strictEqual(records[0], earth);

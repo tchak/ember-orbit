@@ -1,27 +1,61 @@
 import 'reflect-metadata';
-import { RecordIdentity, ModelDefinition } from '@orbit/data';
+import {
+  RecordIdentity,
+  ModelDefinition,
+  cloneRecordIdentity,
+  AttributeDefinition,
+  RelationshipDefinition
+} from '@orbit/data';
+import { SyncRecordCache } from '@orbit/record-cache';
 
-import Store from '../services/store';
 import { Properties } from './utils/normalize-record-properties';
 import {
-  RootRelatedRecordTerm,
-  RootRelatedRecordsTerm,
-  RootAttributeTerm
-} from './terms';
+  ModelIdentity,
+  getSource,
+  setSource,
+  hasSource,
+  QueryableAndTransfomableSource,
+  peekRecordAttribute,
+  peekRelatedRecords,
+  peekRelatedRecord,
+  lookup
+} from './cache';
+import {
+  FindRecordQueryOrTransformBuilder,
+  FindRelatedRecordQueryOrTransformBuilder,
+  FindRelatedRecordsQueryOrTransformBuilder
+} from './query-or-transform-builders';
 
 export interface ModelInjections {
   identity: RecordIdentity;
-  store: Store;
+  source: QueryableAndTransfomableSource;
 }
 
-export default class Model {
-  identity!: RecordIdentity;
+export default class Model implements ModelIdentity {
+  [key: string]: unknown;
+  identity: RecordIdentity;
 
-  private _store?: Store;
+  get $source(): QueryableAndTransfomableSource {
+    return getSource(this);
+  }
 
-  constructor(identity: RecordIdentity, store: Store) {
+  get $connected(): boolean {
+    return hasSource(this);
+  }
+
+  get $cache(): SyncRecordCache {
+    return this.$source.cache;
+  }
+
+  static create(injections: ModelInjections) {
+    const { identity, source, ..._injections } = injections;
+    const record = new this(identity);
+    setSource(record, source);
+    return Object.assign(record, _injections);
+  }
+
+  constructor(identity: RecordIdentity) {
     this.identity = identity;
-    this._store = store;
   }
 
   get id(): string {
@@ -32,67 +66,64 @@ export default class Model {
     return this.identity.type;
   }
 
-  get disconnected(): boolean {
-    return !this._store;
-  }
-
-  attribute(name: string, options?: object): RootAttributeTerm {
-    return new RootAttributeTerm(this.store, this, name, options);
-  }
-
-  relatedRecord<M extends Model = Model>(
+  relatedRecord<T extends Model = Model>(
     name: string,
     options?: object
-  ): RootRelatedRecordTerm<M> {
-    return new RootRelatedRecordTerm<M>(this.store, this, name, options);
+  ): FindRelatedRecordQueryOrTransformBuilder<T> {
+    return new FindRelatedRecordQueryOrTransformBuilder<T>(
+      this.$source,
+      this,
+      name,
+      options
+    );
   }
 
-  relatedRecords<M extends Model = Model>(
+  relatedRecords<T extends Model = Model>(
     name: string,
     options?: object
-  ): RootRelatedRecordsTerm<M> {
-    return new RootRelatedRecordsTerm<M>(this.store, this, name, options);
+  ): FindRelatedRecordsQueryOrTransformBuilder<T> {
+    return new FindRelatedRecordsQueryOrTransformBuilder<T>(
+      this.$source,
+      this,
+      name,
+      options
+    );
   }
 
   async update(properties: Properties = {}, options?: object): Promise<void> {
-    await this.store.record(this.identity, options).update(properties);
+    await qot<this>(this).update(properties, options);
   }
 
   async remove(options?: object): Promise<void> {
-    await this.store.record(this.identity, options).remove();
+    await qot<this>(this).remove(options);
   }
 
-  disconnect(): void {
-    this._store = undefined;
+  unload(): void {
+    qot<this>(this).unload();
   }
 
-  destroy() {
-    const cache = this.store.cache;
-    if (cache) {
-      cache.unload(this);
+  $getAttribute<T = unknown>(attribute: string): T {
+    return peekRecordAttribute(this.$cache, this, attribute) as T;
+  }
+
+  $getRelatedRecord<T extends Model = Model>(
+    relationship: string
+  ): T | null | undefined {
+    const record = peekRelatedRecord(this.$cache, this, relationship);
+    if (record) {
+      return lookup<T>(this.$cache, record) as T | null;
     }
+    return record;
   }
 
-  notifyPropertyChange(key: string) {
-    const notifier = Reflect.getMetadata('orbit:notifier', this, key);
-
-    if (notifier) {
-      notifier(this);
+  $getRelatedRecords<T extends Model = Model>(
+    relationship: string
+  ): T[] | undefined {
+    const records = peekRelatedRecords(this.$cache, this, relationship);
+    if (records) {
+      return lookup<T>(this.$cache, records) as T[];
     }
-  }
-
-  get store(): Store {
-    if (!this._store) {
-      throw new Error('record has been removed from Store');
-    }
-
-    return this._store;
-  }
-
-  static create(injections: ModelInjections) {
-    const { identity, store, ..._injections } = injections;
-    const record = new this(identity, store);
-    return Object.assign(record, _injections);
+    return records;
   }
 
   static get schema(): ModelDefinition {
@@ -102,7 +133,9 @@ export default class Model {
     };
   }
 
-  static getDefinitionFor(kind: string) {
+  static getDefinitionFor<
+    T extends AttributeDefinition | RelationshipDefinition
+  >(kind: string): Record<string, T> {
     const options = {};
     const properties = Object.getOwnPropertyNames(this.prototype);
 
@@ -118,4 +151,15 @@ export default class Model {
 
     return options;
   }
+}
+
+function qot<T extends Model>(
+  record: T,
+  options?: object
+): FindRecordQueryOrTransformBuilder<T> {
+  return new FindRecordQueryOrTransformBuilder<T>(
+    record.$source,
+    cloneRecordIdentity(record),
+    options
+  );
 }

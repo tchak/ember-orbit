@@ -2,7 +2,6 @@ import { getOwner, setOwner } from '@ember/application';
 
 import { Log, TaskQueue, Listener } from '@orbit/core';
 import {
-  buildQuery,
   QueryOrExpressions,
   RecordIdentity,
   Transform,
@@ -14,12 +13,22 @@ import {
 } from '@orbit/data';
 import MemorySource, { MemorySourceMergeOptions } from '@orbit/memory';
 
-import Cache from '../-private/cache';
+import LegacyCache from '../-private/legacy-cache';
+
+import {
+  setModelFactory,
+  destroyIdentityMap,
+  sourceQuery,
+  LookupResult
+} from '../-private/cache';
 import Model from '../-private/model';
 import ModelFactory from '../-private/model-factory';
-import { RootRecordTerm, RootRecordsTerm } from '../-private/terms';
+import {
+  FindRecordQueryOrTransformBuilder,
+  FindRecordsQueryOrTransformBuilder
+} from '../-private/query-or-transform-builders';
 
-export { Cache };
+export { LegacyCache as Cache };
 
 export interface StoreInjections {
   source: MemorySource;
@@ -27,26 +36,27 @@ export interface StoreInjections {
 
 export default class Store {
   private _source: MemorySource;
-  private _cache: Cache;
+  private _cache: LegacyCache;
 
   static create(injections: StoreInjections): Store {
     const owner = getOwner(injections);
     const store = new this(injections);
+    const modelFactory = new ModelFactory(store.source);
+
     setOwner(store, owner);
+    setOwner(modelFactory, owner);
+    setModelFactory(store.source.cache, modelFactory);
+
     return store;
   }
 
   constructor(settings: StoreInjections) {
     this._source = settings.source;
-
-    this._cache = new Cache({
-      cache: this.source.cache,
-      modelFactory: new ModelFactory(this)
-    });
+    this._cache = new LegacyCache({ cache: this.source.cache });
   }
 
   destroy() {
-    this._cache.destroy();
+    destroyIdentityMap(this.source.cache);
     delete this._source;
     delete this._cache;
   }
@@ -55,7 +65,7 @@ export default class Store {
     return this._source;
   }
 
-  get cache(): Cache {
+  get cache(): LegacyCache {
     return this._cache;
   }
 
@@ -98,48 +108,48 @@ export default class Store {
     this.source.rebase();
   }
 
-  async query(
+  async query<T extends Model = Model>(
     queryOrExpressions: QueryOrExpressions,
     options?: object,
     id?: string
-  ): Promise<any> {
-    const query = buildQuery(
-      queryOrExpressions,
-      options,
-      id,
-      this.source.queryBuilder
-    );
-    const result = await this.source.query(query);
-    return this.cache.lookup(result, query.expressions.length);
+  ): Promise<LookupResult<T>> {
+    return sourceQuery<T>(this.source, queryOrExpressions, options, id);
   }
 
   async update(
     transformOrTransforms: TransformOrOperations,
     options?: object,
     id?: string
-  ): Promise<any> {
+  ): Promise<void> {
     const transform = buildTransform(
       transformOrTransforms,
       options,
       id,
       this.transformBuilder
     );
-    const result = await this.source.update(transform);
-    return this.cache.lookup(result, transform.operations.length);
+    await this.source.update(transform);
   }
 
-  record<M extends Model = Model>(
+  record<T extends Model = Model>(
     identifier: RecordIdentity,
     options?: object
-  ): RootRecordTerm<M> {
-    return new RootRecordTerm<M>(this, identifier, options);
+  ): FindRecordQueryOrTransformBuilder<T> {
+    return new FindRecordQueryOrTransformBuilder<T>(
+      this.source,
+      identifier,
+      options
+    );
   }
 
-  records<M extends Model = Model>(
+  records<T extends Model = Model>(
     typeOrIdentifiers: string | RecordIdentity[],
     options?: object
-  ): RootRecordsTerm<M> {
-    return new RootRecordsTerm<M>(this, typeOrIdentifiers, options);
+  ): FindRecordsQueryOrTransformBuilder<T> {
+    return new FindRecordsQueryOrTransformBuilder<T>(
+      this.source,
+      typeOrIdentifiers,
+      options
+    );
   }
 
   on(event: string, listener: Listener): void {

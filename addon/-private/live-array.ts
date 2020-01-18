@@ -1,32 +1,31 @@
 import { notifyPropertyChange } from '@ember/object';
 
-import { RecordIdentity } from '@orbit/data';
+import { RecordIdentity, recordsInclude } from '@orbit/data';
 
 import { SyncLiveQuery } from './live-query/sync-live-query';
 import { LiveQuerySubscription } from './live-query/live-query';
-import Model from './model';
-import Cache from './cache';
 import fromCallback from './utils/from-callback';
+import { cacheQuery, ModelIdentity } from './cache';
 
 export interface LiveArraySettings {
-  cache: Cache;
   liveQuery: SyncLiveQuery;
 }
 
-export default class LiveArray<M extends Model = Model>
-  implements Iterable<M>, AsyncIterable<LiveArray<M>> {
-  cache: Cache;
+export default class LiveArray<T extends ModelIdentity>
+  implements Iterable<T>, AsyncIterable<LiveArray<T>> {
   liveQuery: SyncLiveQuery;
 
   constructor(settings: LiveArraySettings) {
-    this.cache = settings.cache;
     this.liveQuery = settings.liveQuery;
   }
 
   [Symbol.iterator]() {
     try {
-      const records = this.cache.query(this.liveQuery.query);
-      return (records as M[])[Symbol.iterator]();
+      const records = cacheQuery<T>(
+        this.liveQuery.cache,
+        this.liveQuery.query
+      ) as T[];
+      return records[Symbol.iterator]();
     } catch {
       return [][Symbol.iterator]();
     }
@@ -54,17 +53,7 @@ export default class LiveArray<M extends Model = Model>
   }
 
   has(identifier: RecordIdentity): boolean {
-    const recordToFind = this.cache.lookup(identifier) as M | undefined;
-
-    if (recordToFind) {
-      for (let record of this) {
-        if (record === recordToFind) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return recordsInclude([...this], identifier);
   }
 
   subscribe(): () => void {
@@ -90,9 +79,9 @@ export default class LiveArray<M extends Model = Model>
   }
 }
 
-function notifyContentChange(liveArray: LiveArray) {
+function notifyContentChange<T extends ModelIdentity>(liveArray: LiveArray<T>) {
   notifyPropertyChange(liveArray, 'length');
   notifyPropertyChange(liveArray, '[]');
 }
 
-const subscriptions = new WeakMap<LiveArray, LiveQuerySubscription>();
+const subscriptions = new WeakMap<any, LiveQuerySubscription>();

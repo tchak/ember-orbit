@@ -17,24 +17,10 @@ export default function normalizeRecordProperties(
   const modelDefinition = schema.getModel(type as string);
   const record = { id, type } as OrbitRecord;
 
-  assignKeys(modelDefinition, record, properties);
   assignAttributes(modelDefinition, record, properties);
   assignRelationships(modelDefinition, record, properties);
 
   return record;
-}
-
-function assignKeys(
-  modelDefinition: ModelDefinition,
-  record: OrbitRecord,
-  properties: Properties
-) {
-  const keys = modelDefinition.keys || {};
-  for (let key of Object.keys(keys)) {
-    if (properties[key] !== undefined) {
-      deepSet(record, ['keys', key], properties[key]);
-    }
-  }
 }
 
 function assignAttributes(
