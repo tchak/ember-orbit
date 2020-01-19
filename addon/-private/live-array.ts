@@ -8,16 +8,12 @@ import fromCallback from './utils/from-callback';
 import { cacheQuery } from './cache';
 import { ModelIdentity } from './identity-map';
 
-export interface LiveArraySettings {
-  liveQuery: SyncLiveQuery;
-}
-
 export default class LiveArray<T extends ModelIdentity>
   implements Iterable<T>, AsyncIterable<LiveArray<T>> {
   liveQuery: SyncLiveQuery;
 
-  constructor(settings: LiveArraySettings) {
-    this.liveQuery = settings.liveQuery;
+  constructor(liveQuery: SyncLiveQuery) {
+    this.liveQuery = liveQuery;
   }
 
   [Symbol.iterator]() {
@@ -85,4 +81,7 @@ function notifyContentChange<T extends ModelIdentity>(liveArray: LiveArray<T>) {
   notifyPropertyChange(liveArray, '[]');
 }
 
-const subscriptions = new WeakMap<any, LiveQuerySubscription>();
+const subscriptions = new WeakMap<
+  LiveArray<ModelIdentity>,
+  LiveQuerySubscription
+>();

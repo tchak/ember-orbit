@@ -15,12 +15,10 @@ import {
   peekRelatedRecords,
   peekRelatedRecord
 } from './cache';
-import {
+import IdentityMap, {
   ModelIdentity,
   getSource,
-  setSource,
-  hasSource,
-  IdentityMap
+  hasSource
 } from './identity-map';
 import {
   FindRecordQueryOrTransformBuilder,
@@ -51,9 +49,8 @@ export default class Model implements ModelIdentity {
   }
 
   static create(injections: ModelInjections) {
-    const { identity, source, ..._injections } = injections;
+    const { identity, ..._injections } = injections;
     const record = new this(identity);
-    setSource(record, source);
     return Object.assign(record, _injections);
   }
 
@@ -67,6 +64,14 @@ export default class Model implements ModelIdentity {
 
   get type(): string {
     return this.$identity.type;
+  }
+
+  fork(force = false): this {
+    if (force || !this.$source.base) {
+      const source = this.$source.fork();
+      return qot<this>(source, this).peek();
+    }
+    return this;
   }
 
   relatedRecord<T extends Model = Model>(
@@ -93,12 +98,24 @@ export default class Model implements ModelIdentity {
     );
   }
 
+  async save(): Promise<this> {
+    if (this.$source.base) {
+      const parentSource = this.$source.base;
+      const forkedSource = this.$source;
+      await forkedSource.requestQueue.process();
+      await parentSource.merge(forkedSource);
+      forkedSource.destroy();
+      return qot<this>(parentSource, this).peek();
+    }
+    return this;
+  }
+
   async update(properties: Properties = {}, options?: object): Promise<void> {
-    await qot<this>(this).update(properties, options);
+    await qot<this>(this.$source, this).update(properties, options);
   }
 
   async remove(options?: object): Promise<void> {
-    await qot<this>(this).remove(options);
+    await qot<this>(this.$source, this).remove(options);
   }
 
   unload(): void {
@@ -157,11 +174,12 @@ export default class Model implements ModelIdentity {
 }
 
 function qot<T extends Model>(
+  source: QueryableAndTransfomableSource,
   record: T,
   options?: object
 ): FindRecordQueryOrTransformBuilder<T> {
   return new FindRecordQueryOrTransformBuilder<T>(
-    record.$source,
+    source,
     cloneRecordIdentity(record),
     options
   );

@@ -17,7 +17,7 @@ import {
   liveQuery,
   QueryableAndTransfomableSource
 } from '../cache';
-import { IdentityMap, ModelIdentity } from '../identity-map';
+import IdentityMap, { ModelIdentity } from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,

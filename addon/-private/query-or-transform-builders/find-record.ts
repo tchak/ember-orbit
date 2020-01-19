@@ -8,7 +8,7 @@ import {
   peekRecordLinks,
   QueryableAndTransfomableSource
 } from '../cache';
-import { IdentityMap, ModelIdentity } from '../identity-map';
+import IdentityMap, { ModelIdentity } from '../identity-map';
 import normalizeRecordProperties, {
   Properties
 } from '../utils/normalize-record-properties';

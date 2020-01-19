@@ -12,13 +12,19 @@ import { SyncRecordCache } from '@orbit/record-cache';
 
 import LiveArray from './live-array';
 import { SyncLiveQuery } from './live-query/sync-live-query';
-import { IdentityMap, ModelIdentity } from './identity-map';
+import IdentityMap, { ModelIdentity } from './identity-map';
 
 export interface QueryableAndTransfomableSource
   extends Source,
     Queryable,
     Updatable {
   cache: SyncRecordCache;
+
+  base: QueryableAndTransfomableSource | undefined;
+  fork(): QueryableAndTransfomableSource;
+  merge(source: QueryableAndTransfomableSource): Promise<void>;
+
+  destroy(): void;
 }
 
 export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
@@ -43,12 +49,9 @@ export function liveQuery<T extends ModelIdentity>(
 ): LiveArray<T> {
   const query = buildQuery(queryOrExpressions, options, id, cache.queryBuilder);
 
-  const liveQuery = new SyncLiveQuery({ query, cache });
-  const liveArray = new LiveArray<T>({ liveQuery });
+  const liveQuery = new SyncLiveQuery({ cache, query });
 
-  IdentityMap.for<T>(cache).registerLiveArray(liveArray);
-
-  return liveArray;
+  return IdentityMap.for<T>(cache).lookupLiveQuery(liveQuery);
 }
 
 export async function sourceQuery<T extends ModelIdentity>(

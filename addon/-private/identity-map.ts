@@ -13,9 +13,10 @@ import {
 } from '@orbit/record-cache';
 import OrbitIdentityMap, { IdentitySerializer } from '@orbit/identity-map';
 
+import { SyncLiveQuery } from './live-query/sync-live-query';
 import LiveArray from './live-array';
-import { has, QueryableAndTransfomableSource } from './cache';
-import ModelFactory from './model-factory';
+import { QueryableAndTransfomableSource, has } from './cache';
+import { modelFor } from '../-ember/model-for';
 
 export class RecordIdentitySerializer<T extends RecordIdentity>
   implements IdentitySerializer<RecordIdentity> {
@@ -31,39 +32,48 @@ export interface ModelIdentity
   extends RecordIdentity,
     Record<string, unknown> {}
 
-export class IdentityMap<T extends ModelIdentity> extends OrbitIdentityMap<
-  RecordIdentity,
-  T
-> {
-  protected cache: SyncRecordCache;
-  protected patchListener: () => void;
-  protected liveArrays: Set<LiveArray<T>>;
+export default class IdentityMap<
+  T extends ModelIdentity
+> extends OrbitIdentityMap<RecordIdentity, T> {
+  private _patchListener: () => void;
+  private _liveArrays: Set<LiveArray<T>>;
 
-  constructor(cache: SyncRecordCache) {
+  source: QueryableAndTransfomableSource;
+
+  get cache(): SyncRecordCache {
+    return this.source.cache;
+  }
+
+  constructor(source: QueryableAndTransfomableSource) {
     const serializer = new RecordIdentitySerializer<T>();
     super({ serializer });
 
-    this.cache = cache;
-    this.patchListener = cache.on('patch', generatePatchListener(this));
-    this.liveArrays = new Set();
+    this.source = source;
+    this._patchListener = this.cache.on('patch', generatePatchListener(this));
+    this._liveArrays = new Set();
 
-    identityMapCache.set(cache, this);
+    identityMapCache.set(this.cache, this);
   }
 
   static for<T extends ModelIdentity>(cache: SyncRecordCache): IdentityMap<T> {
-    let identityMap = identityMapCache.get(cache);
+    const identityMap = identityMapCache.get(cache);
 
     if (!identityMap) {
-      identityMap = new this<T>(cache);
+      throw new Error(`IdentityMap for ${cache} is not initialized.`);
     }
 
     return identityMap as IdentityMap<T>;
   }
 
-  createModelFactory(source: QueryableAndTransfomableSource) {
-    const modelFactory = new ModelFactory(source);
-    modelFactoryCache.set(this, modelFactory);
-    return modelFactory;
+  static setup(source: QueryableAndTransfomableSource): void {
+    new IdentityMap(source);
+  }
+
+  static teardown(source: QueryableAndTransfomableSource): void {
+    const identityMap = this.for(source.cache);
+    if (identityMap) {
+      identityMap.destroy();
+    }
   }
 
   lookup(result: QueryResult, n = 1): LookupResult<T> {
@@ -76,12 +86,16 @@ export class IdentityMap<T extends ModelIdentity> extends OrbitIdentityMap<
     }
   }
 
-  registerLiveArray(liveArray: LiveArray<T>) {
+  lookupLiveQuery(liveQuery: SyncLiveQuery): LiveArray<T> {
+    const liveArray = new LiveArray<T>(liveQuery);
+
     liveArray.subscribe();
-    this.liveArrays.add(liveArray);
+    this._liveArrays.add(liveArray);
+
+    return liveArray;
   }
 
-  unload(identifier: RecordIdentity, force = true) {
+  unload(identifier: RecordIdentity, force = true): void {
     const record = this.get(identifier);
 
     if (force && has(this.cache, identifier)) {
@@ -94,20 +108,18 @@ export class IdentityMap<T extends ModelIdentity> extends OrbitIdentityMap<
     }
   }
 
-  destroy() {
-    if (this.patchListener) {
-      this.patchListener();
-    }
+  destroy(): void {
+    this._patchListener();
 
     for (let record of this.values()) {
       recordSourceCache.delete(record);
     }
     this.clear();
 
-    for (let liveArray of this.liveArrays) {
+    for (let liveArray of this._liveArrays) {
       liveArray.unsubscribe();
     }
-    this.liveArrays.clear();
+    this._liveArrays.clear();
 
     identityMapCache.delete(this.cache);
   }
@@ -128,14 +140,7 @@ export function getSource<T extends ModelIdentity>(
   return source;
 }
 
-export function setSource<T extends ModelIdentity>(
-  record: T,
-  source: QueryableAndTransfomableSource
-) {
-  recordSourceCache.set(record, source);
-}
-
-export function hasSource<T extends ModelIdentity>(record: T) {
+export function hasSource<T extends ModelIdentity>(record: T): boolean {
   return recordSourceCache.has(record);
 }
 
@@ -151,10 +156,9 @@ function lookupQueryResultData<T extends ModelIdentity>(
     let record: T = identityMap.get(result);
 
     if (!record) {
-      const modelFactory = modelFactoryCache.get(identityMap) as ModelFactory<
-        T
-      >;
-      record = modelFactory.create(result);
+      record = modelFor<T>(identityMap.source, result);
+
+      recordSourceCache.set(record, identityMap.source);
       identityMap.set(result, record);
     }
 
@@ -224,11 +228,6 @@ function isQueryResultData(
 const identityMapCache = new WeakMap<
   SyncRecordCache,
   IdentityMap<ModelIdentity>
->();
-
-const modelFactoryCache = new WeakMap<
-  IdentityMap<ModelIdentity>,
-  ModelFactory<ModelIdentity>
 >();
 
 const recordSourceCache = new WeakMap<

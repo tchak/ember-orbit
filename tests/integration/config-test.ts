@@ -1,8 +1,6 @@
 import { Planet, Moon, Star } from 'dummy/tests/support/dummy-models';
 import { createOwner, createStore } from 'dummy/tests/support/store';
 import { module, test } from 'qunit';
-import Controller from '@ember/controller';
-import Route from '@ember/routing/route';
 import { Store } from 'ember-orbit';
 
 module('Integration - Config', function(hooks) {
@@ -33,8 +31,6 @@ module('Integration - Config', function(hooks) {
     );
     const models = { planet: Planet, moon: Moon, star: Star };
     store = createStore({ models, owner });
-    owner.register('controller:application', Controller);
-    owner.register('route:application', Route);
   });
 
   hooks.afterEach(function() {

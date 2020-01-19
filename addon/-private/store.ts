@@ -1,76 +1,86 @@
 import { getOwner, setOwner } from '@ember/application';
 
 import { RecordIdentity } from '@orbit/data';
-import MemorySource, { MemorySourceSettings } from '@orbit/memory';
+import MemorySource, {
+  MemorySourceSettings,
+  MemorySourceMergeOptions
+} from '@orbit/memory';
 
-import { IdentityMap, ModelIdentity } from './identity-map';
 import Model from './model';
+import IdentityMap from './identity-map';
 import {
   FindRecordQueryOrTransformBuilder,
   FindRecordsQueryOrTransformBuilder
 } from './query-or-transform-builders';
 
 export interface StoreSettings extends MemorySourceSettings {}
+export interface StoreMergeOptions extends MemorySourceMergeOptions {}
 
-export default class Store<
-  T extends ModelIdentity = Model
-> extends MemorySource {
-  get identityMap(): IdentityMap<T> {
-    return IdentityMap.for<T>(this.cache);
-  }
+export default class Store extends MemorySource {
+  static create(injections: StoreSettings = {}): Store {
+    const owner = injections.base
+      ? getOwner(injections.base)
+      : getOwner(injections);
 
-  static create<T extends ModelIdentity = Model>(
-    injections: StoreSettings = {}
-  ): Store<T> {
-    injections.name = injections.name || 'store';
-    const owner = getOwner(injections);
-    const store = new this<T>(injections);
-    const modelFactory = store.identityMap.createModelFactory(store);
+    Object.assign(injections, owner.ownerInjection());
+    const store = new this(injections);
 
     setOwner(store, owner);
-    setOwner(modelFactory, owner);
 
     return store;
   }
 
-  destroy() {
-    this.identityMap.destroy();
+  constructor(settings: StoreSettings = {}) {
+    settings.name = settings.name || 'store';
+    super(settings);
+
+    IdentityMap.setup(this);
   }
 
-  fork(settings: StoreSettings = {}): Store<T> {
-    const owner = getOwner(this);
+  destroy(): void {
+    IdentityMap.teardown(this);
+  }
+
+  get base(): Store {
+    return super.base as Store;
+  }
+
+  fork(settings: StoreSettings = {}): Store {
     const schema = this.schema;
-    const injections = owner.ownerInjection();
 
-    Object.assign(injections, settings);
-    injections.schema = schema;
-    injections.cacheSettings = settings.cacheSettings || { schema };
-    injections.keyMap = this.keyMap;
-    injections.queryBuilder = this.queryBuilder;
-    injections.transformBuilder = this.transformBuilder;
-    injections.base = this;
+    settings.schema = schema;
+    settings.cacheSettings = settings.cacheSettings || { schema };
+    settings.keyMap = this.keyMap;
+    settings.queryBuilder = this.queryBuilder;
+    settings.transformBuilder = this.transformBuilder;
+    settings.base = this;
 
-    return Store.create<T>(injections);
+    return Store.create(settings);
   }
 
-  record<K extends T = T>(
+  merge(source: Store, options?: StoreMergeOptions): Promise<void> {
+    return super.merge(source, options);
+  }
+
+  record<T extends Model = Model>(
     identifier: RecordIdentity,
     options?: object
-  ): FindRecordQueryOrTransformBuilder<K> {
-    return new FindRecordQueryOrTransformBuilder<K>(this, identifier, options);
+  ): FindRecordQueryOrTransformBuilder<T> {
+    return new FindRecordQueryOrTransformBuilder<T>(this, identifier, options);
   }
 
-  records<K extends T = T>(
+  records<T extends Model = Model>(
     typeOrIdentifiers: string | RecordIdentity[],
     options?: object
-  ): FindRecordsQueryOrTransformBuilder<K> {
-    return new FindRecordsQueryOrTransformBuilder<K>(
+  ): FindRecordsQueryOrTransformBuilder<T> {
+    return new FindRecordsQueryOrTransformBuilder<T>(
       this,
       typeOrIdentifiers,
       options
     );
   }
 
+  // TODO: we should probably expose has() on cache interface upstream
   has(identifier: RecordIdentity): boolean {
     return !!this.cache.getRecordSync(identifier);
   }
