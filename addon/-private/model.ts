@@ -68,8 +68,8 @@ export default class Model implements ModelIdentity {
 
   fork(force = false): this {
     if (force || !this.$source.base) {
-      const source = this.$source.fork();
-      return qot<this>(source, this).peek();
+      const forkedSource = this.$source.fork();
+      return qot<this>(forkedSource, this).peek();
     }
     return this;
   }
@@ -98,15 +98,25 @@ export default class Model implements ModelIdentity {
     );
   }
 
-  async save(): Promise<this> {
+  async save(discardForkedStore = true): Promise<this> {
     if (this.$source.base) {
       const parentSource = this.$source.base;
       const forkedSource = this.$source;
+
       await forkedSource.requestQueue.process();
+      //FIXME
+      if (forkedSource.requestQueue.length > 0) {
+        await forkedSource.requestQueue.process();
+      }
+
       await parentSource.merge(forkedSource);
-      forkedSource.destroy();
+
+      if (discardForkedStore) {
+        forkedSource.destroy();
+      }
       return qot<this>(parentSource, this).peek();
     }
+
     return this;
   }
 

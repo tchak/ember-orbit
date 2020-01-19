@@ -390,4 +390,34 @@ module('Integration - Model', function(hooks) {
       'invalidates has many relationship'
     );
   });
+
+  module('Model#fork', function() {
+    test('fork + save', async function(assert) {
+      const jupiter = await store.records<Planet>('planet').add({
+        name: 'Jupiter'
+      });
+
+      const jupiterBis = jupiter.fork();
+
+      jupiterBis.name = 'Jupiter Bis';
+
+      assert.notEqual(jupiter.$source, jupiterBis.$source);
+      assert.equal(
+        jupiter.$source,
+        jupiterBis.$source.base,
+        'record should be forked'
+      );
+      assert.notEqual(jupiter, jupiterBis);
+      assert.equal(jupiter.name, 'Jupiter');
+      assert.equal(jupiterBis.name, 'Jupiter Bis');
+
+      const jupiterOrig = await jupiterBis.save();
+
+      assert.equal(jupiter.name, 'Jupiter Bis');
+      assert.equal(jupiterOrig.name, 'Jupiter Bis');
+      assert.equal(jupiter, jupiterOrig);
+
+      assert.notOk(jupiterBis.$connected, 'forked record should be discarded');
+    });
+  });
 });

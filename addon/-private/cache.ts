@@ -23,6 +23,8 @@ export interface QueryableAndTransfomableSource
   base: QueryableAndTransfomableSource | undefined;
   fork(): QueryableAndTransfomableSource;
   merge(source: QueryableAndTransfomableSource): Promise<void>;
+  rebase(): void;
+  rollback(transformId: string, relativePosition: number): Promise<void>;
 
   destroy(): void;
 }
