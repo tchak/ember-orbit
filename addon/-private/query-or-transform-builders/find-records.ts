@@ -12,14 +12,12 @@ import { DEBUG } from '@glimmer/env';
 
 import { BaseQueryOrTransformBuilder } from './base';
 import {
-  unload,
   sourceQuery,
   cacheQuery,
-  ModelIdentity,
   liveQuery,
-  lookup,
   QueryableAndTransfomableSource
 } from '../cache';
+import { IdentityMap, ModelIdentity } from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,
@@ -94,9 +92,10 @@ export class FilteredFindRecordsQueryOrTransformBuilder<T extends ModelIdentity>
       this.toQueryExpression(),
       this.options
     ) as RecordIdentity[];
+    const identityMap = IdentityMap.for<T>(this.source.cache);
 
     for (let record of identifiers) {
-      unload<T>(this.source.cache, record);
+      identityMap.unload(record);
     }
   }
 
@@ -255,6 +254,6 @@ export class FindRecordsQueryOrTransformBuilder<
       mergeOptions(this.options, options)
     );
 
-    return lookup(this.source.cache, record) as T;
+    return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
   }
 }

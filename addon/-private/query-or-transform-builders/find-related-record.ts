@@ -7,11 +7,11 @@ import {
 import {
   sourceQuery,
   cacheQuery,
-  ModelIdentity,
   peekRelationMeta,
   peekRelationLinks,
   QueryableAndTransfomableSource
 } from '../cache';
+import { ModelIdentity } from '../identity-map';
 import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
 

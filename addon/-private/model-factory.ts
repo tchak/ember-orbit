@@ -2,19 +2,19 @@ import { getOwner } from '@ember/application';
 
 import { RecordIdentity, cloneRecordIdentity } from '@orbit/data';
 
-import Model from './model';
-import Store from './store';
+import { QueryableAndTransfomableSource } from './cache';
+import { ModelIdentity } from './identity-map';
 
-export default class ModelFactory {
-  private source: Store;
+export default class ModelFactory<T extends ModelIdentity> {
+  private source: QueryableAndTransfomableSource;
   private modelFactoryMap: Record<string, any>;
 
-  constructor(source: Store) {
+  constructor(source: QueryableAndTransfomableSource) {
     this.source = source;
     this.modelFactoryMap = new Map();
   }
 
-  create(identifier: RecordIdentity): Model {
+  create(identifier: RecordIdentity): T {
     const modelFactory = this.modelFactoryFor(identifier.type);
 
     return modelFactory.create({

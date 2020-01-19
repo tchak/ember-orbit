@@ -10,16 +10,18 @@ import { SyncRecordCache } from '@orbit/record-cache';
 
 import { Properties } from './utils/normalize-record-properties';
 import {
+  QueryableAndTransfomableSource,
+  peekRecordAttribute,
+  peekRelatedRecords,
+  peekRelatedRecord
+} from './cache';
+import {
   ModelIdentity,
   getSource,
   setSource,
   hasSource,
-  QueryableAndTransfomableSource,
-  peekRecordAttribute,
-  peekRelatedRecords,
-  peekRelatedRecord,
-  lookup
-} from './cache';
+  IdentityMap
+} from './identity-map';
 import {
   FindRecordQueryOrTransformBuilder,
   FindRelatedRecordQueryOrTransformBuilder,
@@ -100,7 +102,7 @@ export default class Model implements ModelIdentity {
   }
 
   unload(): void {
-    qot<this>(this).unload();
+    IdentityMap.for(this.$cache).unload(this);
   }
 
   $getAttribute<T = unknown>(attribute: string): T {
@@ -112,7 +114,7 @@ export default class Model implements ModelIdentity {
   ): T | null | undefined {
     const record = peekRelatedRecord(this.$cache, this, relationship);
     if (record) {
-      return lookup<T>(this.$cache, record) as T | null;
+      return IdentityMap.for<T>(this.$cache).lookup(record) as T | null;
     }
     return record;
   }
@@ -122,7 +124,7 @@ export default class Model implements ModelIdentity {
   ): T[] | undefined {
     const records = peekRelatedRecords(this.$cache, this, relationship);
     if (records) {
-      return lookup<T>(this.$cache, records) as T[];
+      return IdentityMap.for<T>(this.$cache).lookup(records) as T[];
     }
     return records;
   }

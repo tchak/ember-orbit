@@ -2,15 +2,13 @@ import { RecordIdentity, FindRecord, cloneRecordIdentity } from '@orbit/data';
 
 import { BaseQueryOrTransformBuilder } from './base';
 import {
-  lookup,
-  unload,
   sourceQuery,
   cacheQuery,
   peekRecordMeta,
   peekRecordLinks,
-  ModelIdentity,
   QueryableAndTransfomableSource
 } from '../cache';
+import { IdentityMap, ModelIdentity } from '../identity-map';
 import normalizeRecordProperties, {
   Properties
 } from '../utils/normalize-record-properties';
@@ -80,10 +78,10 @@ export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
       mergeOptions(this.options, options)
     );
 
-    return lookup(this.source.cache, record) as T;
+    return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
   }
 
   unload() {
-    unload(this.source.cache, this.expression.record);
+    IdentityMap.for<T>(this.source.cache).unload(this.expression.record);
   }
 }

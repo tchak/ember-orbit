@@ -12,15 +12,14 @@ import { DEBUG } from '@glimmer/env';
 
 import { BaseQueryOrTransformBuilder } from './base';
 import {
-  unload,
   sourceQuery,
   cacheQuery,
-  ModelIdentity,
   liveQuery,
   peekRelationMeta,
   peekRelationLinks,
   QueryableAndTransfomableSource
 } from '../cache';
+import { IdentityMap, ModelIdentity } from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,
@@ -97,9 +96,10 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
       this.toQueryExpression(),
       this.options
     ) as RecordIdentity[];
+    const identityMap = IdentityMap.for<T>(this.source.cache);
 
     for (let record of identifiers) {
-      unload<T>(this.source.cache, record);
+      identityMap.unload(record);
     }
   }
 

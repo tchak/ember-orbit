@@ -5,7 +5,8 @@ import { RecordIdentity, recordsInclude } from '@orbit/data';
 import { SyncLiveQuery } from './live-query/sync-live-query';
 import { LiveQuerySubscription } from './live-query/live-query';
 import fromCallback from './utils/from-callback';
-import { cacheQuery, ModelIdentity } from './cache';
+import { cacheQuery } from './cache';
+import { ModelIdentity } from './identity-map';
 
 export interface LiveArraySettings {
   liveQuery: SyncLiveQuery;
