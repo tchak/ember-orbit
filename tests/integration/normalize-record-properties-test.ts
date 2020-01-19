@@ -26,7 +26,7 @@ module('Integration - normalizeRecordProperties', function(hooks) {
       id: 'sun',
       name: 'The Sun'
     });
-    const normalized = normalizeRecordProperties(store.source.schema, {
+    const normalized = normalizeRecordProperties(store.schema, {
       type: 'planet',
       id: 'jupiter',
       name: 'Jupiter',
@@ -50,7 +50,7 @@ module('Integration - normalizeRecordProperties', function(hooks) {
   });
 
   test('#normalizeRecordProperties - undefined relationships', function(assert) {
-    const normalized = normalizeRecordProperties(store.source.schema, {
+    const normalized = normalizeRecordProperties(store.schema, {
       type: 'planet',
       id: 'jupiter',
       name: 'Jupiter'
@@ -64,7 +64,7 @@ module('Integration - normalizeRecordProperties', function(hooks) {
   });
 
   test('#normalizeRecordProperties - nullable relationships', function(assert) {
-    const normalized = normalizeRecordProperties(store.source.schema, {
+    const normalized = normalizeRecordProperties(store.schema, {
       type: 'planet',
       id: 'jupiter',
       name: 'Jupiter',

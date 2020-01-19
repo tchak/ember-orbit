@@ -17,16 +17,16 @@ export interface SchemaInjections extends SchemaSettings {
 export default {
   create(injections: SchemaInjections = {}) {
     if (!injections.models) {
-      const app = getOwner(injections);
+      const owner = getOwner(injections);
       const models: Record<string, ModelDefinition> = {};
 
-      const { types, collections } = app.lookup('ember-orbit:config');
+      const { types, collections } = owner.lookup('ember-orbit:config');
       const modelNames =
         injections.modelNames ||
-        getRegisteredModels(app.base.modulePrefix, collections.models);
+        getRegisteredModels(owner.base.modulePrefix, collections.models);
 
       for (let name of modelNames) {
-        models[name] = app.factoryFor(`${types.model}:${name}`).class.schema;
+        models[name] = owner.factoryFor(`${types.model}:${name}`).class.schema;
       }
 
       injections.models = models;

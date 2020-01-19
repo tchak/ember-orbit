@@ -29,8 +29,8 @@ module('waitForSource helper', function(hooks) {
 
     await waitForSource(backup);
 
-    assert.ok(backup.source.requestQueue.empty);
-    assert.ok(backup.source.syncQueue.empty);
+    assert.ok(backup.requestQueue.empty);
+    assert.ok(backup.syncQueue.empty);
   });
 
   test('it looks up data sources by name if a string is provided', async function(assert) {
@@ -46,7 +46,7 @@ module('waitForSource helper', function(hooks) {
 
     await waitForSource('backup');
 
-    assert.ok(backup.source.requestQueue.empty);
-    assert.ok(backup.source.syncQueue.empty);
+    assert.ok(backup.requestQueue.empty);
+    assert.ok(backup.syncQueue.empty);
   });
 });

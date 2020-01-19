@@ -60,7 +60,7 @@ module('Integration - Model', function(hooks) {
 
     assert.ok(record.id, 'assigned id');
     assert.deepEqual(
-      record.identity,
+      record.$identity,
       { id: record.id, type: 'planet' },
       'assigned identity that includes type and id'
     );
@@ -70,14 +70,13 @@ module('Integration - Model', function(hooks) {
   });
 
   test('models can be removed', async function(assert) {
-    const cache = store.cache;
     const record = await store.records<Star>('star').add({
       name: 'The Sun'
     });
     await record.remove();
 
     assert.notOk(
-      cache.has({ type: 'star', id: record.id }),
+      store.has({ type: 'star', id: record.id }),
       'record does not exist in cache'
     );
     assert.ok(!record.$connected, 'record has been disconnected from store');
@@ -146,7 +145,7 @@ module('Integration - Model', function(hooks) {
     });
 
     assert.deepEqual([...jupiter.moons], []); // cache the relationship
-    await store.source.update(t =>
+    await store.update(t =>
       t.replaceRelatedRecords(jupiter, 'moons', [callisto])
     );
     assert.deepEqual(
@@ -179,7 +178,7 @@ module('Integration - Model', function(hooks) {
     const sun = await store.records<Star>('star').add({ name: 'Sun' });
 
     assert.equal(jupiter.sun, null); // cache the relationship
-    await store.source.update(t => t.replaceRelatedRecord(jupiter, 'sun', sun));
+    await store.update(t => t.replaceRelatedRecord(jupiter, 'sun', sun));
     assert.equal(jupiter.sun, sun, 'invalidates the relationship');
   });
 
@@ -237,17 +236,15 @@ module('Integration - Model', function(hooks) {
   });
 
   test('destroy model', async function(assert) {
-    const cache = store.cache;
-
     const record = await store.records<Planet>('planet').add({
       name: 'Jupiter'
     });
-    const identifier = record.identity;
+    const identifier = record.$identity;
     record.unload();
 
     await waitForSource(store);
 
-    assert.ok(!cache.has(identifier), 'removed from identity map');
+    assert.ok(!store.has(identifier), 'removed from identity map');
   });
 
   test('#relatedRecord', async function(assert) {
@@ -303,7 +300,9 @@ module('Integration - Model', function(hooks) {
   });
 
   test('#relatedRecords.add()', async function(assert) {
-    const jupiter = await store.records('planet').add({ name: 'Jupiter' });
+    const jupiter = await store
+      .records<Planet>('planet')
+      .add({ name: 'Jupiter' });
     const europa = await store.records('moon').add({ name: 'Europa' });
     const io = await store.records('moon').add({ name: 'Io' });
 

@@ -10,8 +10,8 @@ export interface CoordinatorInjections extends CoordinatorOptions {
 
 export default {
   create(injections: CoordinatorInjections = {}) {
-    const app = getOwner(injections);
-    const config = app.lookup('ember-orbit:config');
+    const owner = getOwner(injections);
+    const config = owner.lookup('ember-orbit:config');
 
     let sourceNames;
     if (injections.sourceNames) {
@@ -19,7 +19,7 @@ export default {
       delete injections.sourceNames;
     } else {
       sourceNames = modulesOfType(
-        app.base.modulePrefix,
+        owner.base.modulePrefix,
         config.collections.sources
       );
       sourceNames.push('store');
@@ -31,16 +31,16 @@ export default {
       delete injections.strategyNames;
     } else {
       strategyNames = modulesOfType(
-        app.base.modulePrefix,
+        owner.base.modulePrefix,
         config.collections.strategies
       );
     }
 
     injections.sources = sourceNames.map(name =>
-      app.lookup(`${config.types.source}:${name}`)
+      owner.lookup(`${config.types.source}:${name}`)
     );
     injections.strategies = strategyNames.map(name =>
-      app.lookup(`${config.types.strategy}:${name}`)
+      owner.lookup(`${config.types.strategy}:${name}`)
     );
 
     return new Coordinator(injections);

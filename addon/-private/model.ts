@@ -33,7 +33,8 @@ export interface ModelInjections {
 
 export default class Model implements ModelIdentity {
   [key: string]: unknown;
-  identity: RecordIdentity;
+
+  $identity: RecordIdentity;
 
   get $source(): QueryableAndTransfomableSource {
     return getSource(this);
@@ -55,15 +56,15 @@ export default class Model implements ModelIdentity {
   }
 
   constructor(identity: RecordIdentity) {
-    this.identity = identity;
+    this.$identity = identity;
   }
 
   get id(): string {
-    return this.identity.id;
+    return this.$identity.id;
   }
 
   get type(): string {
-    return this.identity.type;
+    return this.$identity.type;
   }
 
   relatedRecord<T extends Model = Model>(

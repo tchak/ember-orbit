@@ -1,15 +1,15 @@
 import { getOwner } from '@ember/application';
 
-import MemorySource from '@orbit/memory';
 import { RecordIdentity, cloneRecordIdentity } from '@orbit/data';
 
 import Model from './model';
+import Store from './store';
 
 export default class ModelFactory {
-  private source: MemorySource;
+  private source: Store;
   private modelFactoryMap: Record<string, any>;
 
-  constructor(source: MemorySource) {
+  constructor(source: Store) {
     this.source = source;
     this.modelFactoryMap = new Map();
   }
