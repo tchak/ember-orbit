@@ -15,6 +15,7 @@ import {
 import IdentityMap, { ModelIdentity } from '../identity-map';
 import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
+import { BatchQueryBuilder } from './batch';
 
 export class FindRelatedRecordQueryOrTransformBuilder<T extends ModelIdentity>
   extends BaseQueryOrTransformBuilder
@@ -54,6 +55,12 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends ModelIdentity>
       this.toQueryExpression(),
       this.options
     ).then<T>(onfullfiled, onrejected);
+  }
+
+  merge<K extends ModelIdentity = T>(
+    ...queryBuilders: BaseQueryOrTransformBuilder[]
+  ): BatchQueryBuilder<T | K> {
+    return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
   }
 
   value(): T | null | undefined {

@@ -8,7 +8,6 @@ import {
   SortQBParam
 } from '@orbit/data';
 import { clone } from '@orbit/utils';
-import { DEBUG } from '@glimmer/env';
 
 import { BaseQueryOrTransformBuilder } from './base';
 import {
@@ -31,6 +30,7 @@ import normalizeRecordProperties, {
   Properties
 } from '../utils/normalize-record-properties';
 import LiveArray from '../live-array';
+import { BatchQueryBuilder } from './batch';
 
 export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
   T extends ModelIdentity
@@ -136,44 +136,28 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
   }
 
   peek(): T[] {
-    const records = cacheQuery<T>(
+    return cacheQuery<T>(
       this.source.cache,
       this.toQueryExpression(),
       this.options
     ) as T[];
-
-    if (DEBUG) {
-      Object.freeze(records);
-    }
-
-    return records;
   }
 
   then<K = T[]>(
     onfullfiled?: null | ((value: any) => K | PromiseLike<K>),
     onrejected?: null | ((reason: any) => PromiseLike<never>)
   ): Promise<K> {
-    return sourceQuery<T>(this.source, this.toQueryExpression(), this.options)
-      .then(records => {
-        if (DEBUG) {
-          Object.freeze(records);
-        }
-
-        return records as T[];
-      })
-      .then<K>(onfullfiled, onrejected);
+    return sourceQuery<T>(
+      this.source,
+      this.toQueryExpression(),
+      this.options
+    ).then<K>(onfullfiled, onrejected);
   }
 
-  value(): T[] | undefined {
-    const record = peekRelatedRecords(
-      this.source.cache,
-      this.expression.record,
-      this.expression.relationship
-    );
-    if (record) {
-      return IdentityMap.for<T>(this.source.cache).lookup(record) as T[];
-    }
-    return record;
+  merge<K extends ModelIdentity = T>(
+    ...queryBuilders: BaseQueryOrTransformBuilder[]
+  ): BatchQueryBuilder<T | K> {
+    return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
   }
 }
 
@@ -274,6 +258,18 @@ export class FindRelatedRecordsQueryOrTransformBuilder<
       this.expression.record,
       this.expression.relationship
     );
+  }
+
+  value(): T[] | undefined {
+    const record = peekRelatedRecords(
+      this.source.cache,
+      this.expression.record,
+      this.expression.relationship
+    );
+    if (record) {
+      return IdentityMap.for<T>(this.source.cache).lookup(record) as T[];
+    }
+    return record;
   }
 
   async add(record: RecordIdentity, options?: object): Promise<void> {

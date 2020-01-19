@@ -444,4 +444,25 @@ module('Integration - Store', function(hooks) {
     assert.ok(fork.has(recordD));
     assert.ok(fork.has(recordE));
   });
+
+  module('Batch Query', function() {
+    test('#records().merge()', async function(assert) {
+      const jupiter = await store.records<Planet>('planet').add({
+        name: 'Jupiter',
+        classification: 'gas giant'
+      });
+      const mars = await store.records<Planet>('planet').add({
+        name: 'Mars'
+      });
+      const callisto = await store
+        .records<Moon>('moon')
+        .add({ name: 'Callisto' });
+
+      const planets = store.records<Planet>('planet').sort('name');
+      const records = await store.records<Moon>('moon').merge<Planet>(planets);
+
+      assert.deepEqual(records[0], [callisto]);
+      assert.deepEqual(records[1], [jupiter, mars]);
+    });
+  });
 });

@@ -1,3 +1,4 @@
+import { DEBUG } from '@glimmer/env';
 import {
   RecordIdentity,
   serializeRecordIdentity,
@@ -146,9 +147,15 @@ function lookupQueryResultData<T extends ModelIdentity>(
   result: QueryResultData
 ): T | T[] | null {
   if (Array.isArray(result)) {
-    return result.map(
+    const records = result.map(
       identity => lookupQueryResultData(identityMap, identity) as T
     );
+
+    if (DEBUG) {
+      Object.freeze(records);
+    }
+
+    return records;
   } else if (result) {
     let record: T = identityMap.get(result);
 
