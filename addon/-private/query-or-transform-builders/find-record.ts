@@ -6,13 +6,22 @@ import {
   cacheQuery,
   peekRecordMeta,
   peekRecordLinks,
-  QueryableAndTransfomableSource
+  QueryableAndTransfomableSource,
+  peekRecordAttribute,
+  peekRecord
 } from '../cache';
 import IdentityMap, { ModelIdentity } from '../identity-map';
 import normalizeRecordProperties, {
   Properties
 } from '../utils/normalize-record-properties';
 import { mergeOptions } from './utils';
+
+export function findRecord<T extends ModelIdentity>(
+  identifier: RecordIdentity,
+  source: QueryableAndTransfomableSource
+) {
+  return new FindRecordQueryOrTransformBuilder<T>(source, identifier);
+}
 
 export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
   extends BaseQueryOrTransformBuilder
@@ -52,11 +61,27 @@ export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
     ).then<T>(onfullfiled, onrejected);
   }
 
-  get meta() {
+  value(): T | undefined {
+    const record = peekRecord(this.source.cache, this.expression.record);
+    if (record) {
+      return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
+    }
+    return record;
+  }
+
+  attribute<T = unknown>(attribute: string): T {
+    return peekRecordAttribute(
+      this.source.cache,
+      this.expression.record,
+      attribute
+    ) as T;
+  }
+
+  meta() {
     return peekRecordMeta(this.source.cache, this.expression.record);
   }
 
-  get links() {
+  links() {
     return peekRecordLinks(this.source.cache, this.expression.record);
   }
 
@@ -81,7 +106,7 @@ export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
     return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
   }
 
-  unload() {
+  unload(): void {
     IdentityMap.for<T>(this.source.cache).unload(this.expression.record);
   }
 }

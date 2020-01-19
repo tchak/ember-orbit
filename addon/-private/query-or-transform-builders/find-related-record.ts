@@ -9,9 +9,10 @@ import {
   cacheQuery,
   peekRelationMeta,
   peekRelationLinks,
-  QueryableAndTransfomableSource
+  QueryableAndTransfomableSource,
+  peekRelatedRecord
 } from '../cache';
-import { ModelIdentity } from '../identity-map';
+import IdentityMap, { ModelIdentity } from '../identity-map';
 import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
 
@@ -55,7 +56,19 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends ModelIdentity>
     ).then<T>(onfullfiled, onrejected);
   }
 
-  get meta() {
+  value(): T | null | undefined {
+    const record = peekRelatedRecord(
+      this.source.cache,
+      this.expression.record,
+      this.expression.relationship
+    );
+    if (record) {
+      return IdentityMap.for<T>(this.source.cache).lookup(record) as T | null;
+    }
+    return record;
+  }
+
+  meta() {
     return peekRelationMeta(
       this.source.cache,
       this.expression.record,
@@ -63,7 +76,7 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends ModelIdentity>
     );
   }
 
-  get links() {
+  links() {
     return peekRelationLinks(
       this.source.cache,
       this.expression.record,

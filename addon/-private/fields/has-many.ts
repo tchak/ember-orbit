@@ -22,7 +22,7 @@ export default function hasMany(
     const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {
-      const value = record.$getRelatedRecords(key) || [];
+      const value = record.relatedRecords(key).value() || [];
       defaultAssigned.add(record);
       return originalSet!.call(record, value);
     }

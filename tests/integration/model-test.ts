@@ -232,7 +232,7 @@ module('Integration - Model', function(hooks) {
     const record = await store.records<Planet>('planet').add({
       name: 'Jupiter'
     });
-    assert.equal(record.$getAttribute<string>('name'), 'Jupiter');
+    assert.equal(record.$ref.attribute<string>('name'), 'Jupiter');
   });
 
   test('destroy model', async function(assert) {
@@ -254,17 +254,17 @@ module('Integration - Model', function(hooks) {
     const sun = await store.records<Star>('star').add({ name: 'Sun' });
 
     assert.strictEqual(jupiter.sun, null);
-    assert.strictEqual(jupiter.$getRelatedRecord('sun'), undefined);
+    assert.strictEqual(jupiter.relatedRecord('sun').value(), undefined);
 
     await jupiter.relatedRecord('sun').replace(sun);
 
     assert.strictEqual(jupiter.sun, sun);
-    assert.strictEqual(jupiter.$getRelatedRecord('sun'), sun);
+    assert.strictEqual(jupiter.relatedRecord('sun').value(), sun);
     assert.strictEqual(await jupiter.relatedRecord('sun'), sun);
 
     await jupiter.relatedRecord('sun').replace(null);
     assert.strictEqual(jupiter.sun, null);
-    assert.strictEqual(jupiter.$getRelatedRecord('sun'), null);
+    assert.strictEqual(jupiter.relatedRecord('sun').value(), null);
   });
 
   test('#relatedRecords always returns the same relationship', async function(assert) {
@@ -306,12 +306,12 @@ module('Integration - Model', function(hooks) {
     const europa = await store.records('moon').add({ name: 'Europa' });
     const io = await store.records('moon').add({ name: 'Io' });
 
-    assert.deepEqual(jupiter.$getRelatedRecords('moons'), undefined);
+    assert.deepEqual(jupiter.relatedRecords('moons').value(), undefined);
     assert.deepEqual(jupiter.moons, []);
 
     await jupiter.relatedRecords('moons').add(europa);
 
-    assert.deepEqual(jupiter.$getRelatedRecords('moons'), [europa]);
+    assert.deepEqual(jupiter.relatedRecords('moons').value(), [europa]);
     assert.deepEqual(jupiter.moons, [europa]);
 
     await jupiter.relatedRecords('moons').add(io);
@@ -327,11 +327,11 @@ module('Integration - Model', function(hooks) {
       moons: [europa, io]
     });
 
-    assert.deepEqual(jupiter.$getRelatedRecords('moons'), [europa, io]);
+    assert.deepEqual(jupiter.relatedRecords('moons').value(), [europa, io]);
 
     await jupiter.relatedRecords('moons').remove(europa);
 
-    assert.deepEqual(jupiter.$getRelatedRecords('moons'), [io]);
+    assert.deepEqual(jupiter.relatedRecords('moons').value(), [io]);
 
     await jupiter.relatedRecords('moons').remove(io);
 
@@ -391,13 +391,13 @@ module('Integration - Model', function(hooks) {
     );
   });
 
-  module('Model#fork', function() {
-    test('fork + save', async function(assert) {
+  module('Model#draft', function() {
+    test('draft + save', async function(assert) {
       const jupiter = await store.records<Planet>('planet').add({
         name: 'Jupiter'
       });
 
-      const jupiterBis = jupiter.fork();
+      const jupiterBis = jupiter.draft();
 
       jupiterBis.name = 'Jupiter Bis';
 
@@ -405,7 +405,12 @@ module('Integration - Model', function(hooks) {
       assert.equal(
         jupiter.$source,
         jupiterBis.$source.base,
-        'record should be forked'
+        'record source should be forked'
+      );
+      assert.equal(
+        jupiterBis,
+        jupiterBis.draft(),
+        'record source should be forked only once'
       );
       assert.notEqual(jupiter, jupiterBis);
       assert.equal(jupiter.name, 'Jupiter');

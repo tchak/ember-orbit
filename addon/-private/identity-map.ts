@@ -70,10 +70,7 @@ export default class IdentityMap<
   }
 
   static teardown(source: QueryableAndTransfomableSource): void {
-    const identityMap = this.for(source.cache);
-    if (identityMap) {
-      identityMap.destroy();
-    }
+    this.for(source.cache).destroy();
   }
 
   lookup(result: QueryResult, n = 1): LookupResult<T> {

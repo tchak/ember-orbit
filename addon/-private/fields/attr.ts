@@ -11,7 +11,7 @@ export default function attr(type: string, options: AttributeDefinition = {}) {
     const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model): void {
-      const value = record.$getAttribute(key);
+      const value = record.$ref.attribute(key);
       setValue(record, value);
     }
 
@@ -28,7 +28,7 @@ export default function attr(type: string, options: AttributeDefinition = {}) {
     }
 
     function set(this: Model, value: unknown) {
-      const oldValue = this.$getAttribute(key);
+      const oldValue = this.$ref.attribute(key);
 
       if (value !== oldValue) {
         this.update({ [key]: value });

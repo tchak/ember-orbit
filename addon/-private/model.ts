@@ -2,28 +2,18 @@ import 'reflect-metadata';
 import {
   RecordIdentity,
   ModelDefinition,
-  cloneRecordIdentity,
   AttributeDefinition,
   RelationshipDefinition
 } from '@orbit/data';
 import { SyncRecordCache } from '@orbit/record-cache';
 
 import { Properties } from './utils/normalize-record-properties';
+import { QueryableAndTransfomableSource } from './cache';
+import { ModelIdentity, getSource, hasSource } from './identity-map';
 import {
-  QueryableAndTransfomableSource,
-  peekRecordAttribute,
-  peekRelatedRecords,
-  peekRelatedRecord
-} from './cache';
-import IdentityMap, {
-  ModelIdentity,
-  getSource,
-  hasSource
-} from './identity-map';
-import {
-  FindRecordQueryOrTransformBuilder,
   FindRelatedRecordQueryOrTransformBuilder,
-  FindRelatedRecordsQueryOrTransformBuilder
+  FindRelatedRecordsQueryOrTransformBuilder,
+  findRecord
 } from './query-or-transform-builders';
 
 export interface ModelInjections {
@@ -48,6 +38,10 @@ export default class Model implements ModelIdentity {
     return this.$source.cache;
   }
 
+  get $ref() {
+    return findRecord<this>(this, this.$source);
+  }
+
   static create(injections: ModelInjections) {
     const { identity, ..._injections } = injections;
     const record = new this(identity);
@@ -64,14 +58,6 @@ export default class Model implements ModelIdentity {
 
   get type(): string {
     return this.$identity.type;
-  }
-
-  fork(force = false): this {
-    if (force || !this.$source.base) {
-      const forkedSource = this.$source.fork();
-      return qot<this>(forkedSource, this).peek();
-    }
-    return this;
   }
 
   relatedRecord<T extends Model = Model>(
@@ -98,62 +84,46 @@ export default class Model implements ModelIdentity {
     );
   }
 
-  async save(discardForkedStore = true): Promise<this> {
+  draft(force = false): this {
+    if (force || !this.$source.base) {
+      const forkedSource = this.$source.fork();
+      return findRecord<this>(this, forkedSource).value() as this;
+    }
+    return this;
+  }
+
+  async save(discardDraftSource = true): Promise<this> {
     if (this.$source.base) {
-      const parentSource = this.$source.base;
-      const forkedSource = this.$source;
+      const source = this.$source.base;
+      const draftSource = this.$source;
 
-      await forkedSource.requestQueue.process();
+      await draftSource.requestQueue.process();
       //FIXME
-      if (forkedSource.requestQueue.length > 0) {
-        await forkedSource.requestQueue.process();
+      if (draftSource.requestQueue.length > 0) {
+        await draftSource.requestQueue.process();
       }
 
-      await parentSource.merge(forkedSource);
+      await source.merge(draftSource);
 
-      if (discardForkedStore) {
-        forkedSource.destroy();
+      if (discardDraftSource) {
+        draftSource.destroy();
       }
-      return qot<this>(parentSource, this).peek();
+      return findRecord<this>(this, source).value() as this;
     }
 
     return this;
   }
 
-  async update(properties: Properties = {}, options?: object): Promise<void> {
-    await qot<this>(this.$source, this).update(properties, options);
+  update(properties: Properties = {}, options?: object): Promise<this> {
+    return this.$ref.update(properties, options);
   }
 
-  async remove(options?: object): Promise<void> {
-    await qot<this>(this.$source, this).remove(options);
+  remove(options?: object): Promise<void> {
+    return this.$ref.remove(options);
   }
 
   unload(): void {
-    IdentityMap.for(this.$cache).unload(this);
-  }
-
-  $getAttribute<T = unknown>(attribute: string): T {
-    return peekRecordAttribute(this.$cache, this, attribute) as T;
-  }
-
-  $getRelatedRecord<T extends Model = Model>(
-    relationship: string
-  ): T | null | undefined {
-    const record = peekRelatedRecord(this.$cache, this, relationship);
-    if (record) {
-      return IdentityMap.for<T>(this.$cache).lookup(record) as T | null;
-    }
-    return record;
-  }
-
-  $getRelatedRecords<T extends Model = Model>(
-    relationship: string
-  ): T[] | undefined {
-    const records = peekRelatedRecords(this.$cache, this, relationship);
-    if (records) {
-      return IdentityMap.for<T>(this.$cache).lookup(records) as T[];
-    }
-    return records;
+    this.$ref.unload();
   }
 
   static get schema(): ModelDefinition {
@@ -181,16 +151,4 @@ export default class Model implements ModelIdentity {
 
     return options;
   }
-}
-
-function qot<T extends Model>(
-  source: QueryableAndTransfomableSource,
-  record: T,
-  options?: object
-): FindRecordQueryOrTransformBuilder<T> {
-  return new FindRecordQueryOrTransformBuilder<T>(
-    source,
-    cloneRecordIdentity(record),
-    options
-  );
 }

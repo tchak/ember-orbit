@@ -17,7 +17,8 @@ import {
   liveQuery,
   peekRelationMeta,
   peekRelationLinks,
-  QueryableAndTransfomableSource
+  QueryableAndTransfomableSource,
+  peekRelatedRecords
 } from '../cache';
 import IdentityMap, { ModelIdentity } from '../identity-map';
 import {
@@ -162,6 +163,18 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
       })
       .then<K>(onfullfiled, onrejected);
   }
+
+  value(): T[] | undefined {
+    const record = peekRelatedRecords(
+      this.source.cache,
+      this.expression.record,
+      this.expression.relationship
+    );
+    if (record) {
+      return IdentityMap.for<T>(this.source.cache).lookup(record) as T[];
+    }
+    return record;
+  }
 }
 
 export class LiveFindRelatedRecordsQueryBuilder<T extends ModelIdentity>
@@ -247,7 +260,7 @@ export class FindRelatedRecordsQueryOrTransformBuilder<
     this.expression = expression as FindRelatedRecords;
   }
 
-  get meta() {
+  meta() {
     return peekRelationMeta(
       this.source.cache,
       this.expression.record,
@@ -255,7 +268,7 @@ export class FindRelatedRecordsQueryOrTransformBuilder<
     );
   }
 
-  get links() {
+  links() {
     return peekRelationLinks(
       this.source.cache,
       this.expression.record,
