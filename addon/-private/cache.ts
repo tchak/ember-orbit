@@ -209,7 +209,10 @@ export function destroyIdentityMap<T extends ModelIdentity>(
   liveArrayCache.delete(cache);
 }
 
-export function has(cache: SyncRecordCache, identifier: RecordIdentity) {
+export function has(
+  cache: SyncRecordCache,
+  identifier: RecordIdentity
+): boolean {
   return !!peekRecord(cache, identifier);
 }
 
@@ -239,47 +242,44 @@ export function peekRelatedRecords(
 export function peekRecordMeta(
   cache: SyncRecordCache,
   identifier: RecordIdentity
-) {
-  return deepGet(peekRecord(cache, identifier), ['meta']);
+): Record<string, unknown> | undefined {
+  const record = peekRecord(cache, identifier);
+  return record && deepGet(record, ['meta']);
 }
 
 export function peekRecordLinks(
   cache: SyncRecordCache,
   identifier: RecordIdentity
-) {
-  return deepGet(peekRecord(cache, identifier), ['links']);
+): Record<string, unknown> | undefined {
+  const record = peekRecord(cache, identifier);
+  return record && deepGet(record, ['links']);
 }
 
 export function peekRelationMeta(
   cache: SyncRecordCache,
   identifier: RecordIdentity,
   relationship: string
-) {
-  return deepGet(peekRecord(cache, identifier), [
-    'relationships',
-    relationship,
-    'meta'
-  ]);
+): Record<string, unknown> | undefined {
+  const record = peekRecord(cache, identifier);
+  return record && deepGet(record, ['relationships', relationship, 'meta']);
 }
 
 export function peekRelationLinks(
   cache: SyncRecordCache,
   identifier: RecordIdentity,
   relationship: string
-) {
-  return deepGet(peekRecord(cache, identifier), [
-    'relationships',
-    relationship,
-    'links'
-  ]);
+): Record<string, unknown> | undefined {
+  const record = peekRecord(cache, identifier);
+  return record && deepGet(record, ['relationships', relationship, 'links']);
 }
 
 export function peekRecordAttribute(
   cache: SyncRecordCache,
   identifier: RecordIdentity,
   attribute: string
-) {
-  return deepGet(peekRecord(cache, identifier), ['attributes', attribute]);
+): unknown | undefined {
+  const record = peekRecord(cache, identifier);
+  return record && deepGet(record, ['attributes', attribute]);
 }
 
 function lookupQueryResultData<T extends ModelIdentity>(
