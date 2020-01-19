@@ -37,7 +37,7 @@ jobs:
 
     # runs tests against each supported Ember version
     - stage: ember version tests
-    - name: "Ember Release"
+      name: "Ember Release"
       env: EMBER_TRY_SCENARIO=ember-release
     - name: "Ember Beta"
       env: EMBER_TRY_SCENARIO=ember-beta
