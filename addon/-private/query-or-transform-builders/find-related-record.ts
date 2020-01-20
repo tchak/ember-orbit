@@ -12,12 +12,12 @@ import {
   QueryableAndTransfomableSource,
   peekRelatedRecord
 } from '../cache';
-import IdentityMap, { ModelIdentity } from '../identity-map';
+import IdentityMap from '../identity-map';
 import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
 import { BatchQueryBuilder } from './batch';
 
-export class FindRelatedRecordQueryOrTransformBuilder<T extends ModelIdentity>
+export class FindRelatedRecordQueryOrTransformBuilder<T extends RecordIdentity>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<T> {
   expression: FindRelatedRecord;
@@ -65,7 +65,7 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends ModelIdentity>
     ) as Promise<T | null>;
   }
 
-  merge<K extends ModelIdentity = T>(
+  merge<K extends RecordIdentity = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);

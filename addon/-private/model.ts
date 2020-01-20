@@ -9,7 +9,7 @@ import { SyncRecordCache } from '@orbit/record-cache';
 
 import { Properties } from './utils/normalize-record-properties';
 import { QueryableAndTransfomableSource } from './cache';
-import { ModelIdentity, getSource, hasSource } from './identity-map';
+import { getSource, hasSource } from './identity-map';
 import {
   FindRelatedRecordQueryOrTransformBuilder,
   FindRelatedRecordsQueryOrTransformBuilder,
@@ -21,17 +21,11 @@ export interface ModelInjections {
   source: QueryableAndTransfomableSource;
 }
 
-export default class Model implements ModelIdentity {
-  [key: string]: unknown;
-
+export default class Model implements RecordIdentity {
   $identity: RecordIdentity;
 
   get $source(): QueryableAndTransfomableSource {
     return getSource(this);
-  }
-
-  get $connected(): boolean {
-    return hasSource(this);
   }
 
   get $cache(): SyncRecordCache {
@@ -40,6 +34,10 @@ export default class Model implements ModelIdentity {
 
   get $ref() {
     return findRecord<this>(this, this.$source);
+  }
+
+  get $disconnected(): boolean {
+    return !hasSource(this);
   }
 
   static create(injections: ModelInjections) {

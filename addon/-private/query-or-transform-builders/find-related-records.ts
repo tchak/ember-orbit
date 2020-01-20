@@ -19,7 +19,7 @@ import {
   QueryableAndTransfomableSource,
   peekRelatedRecords
 } from '../cache';
-import IdentityMap, { ModelIdentity } from '../identity-map';
+import IdentityMap from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,
@@ -33,7 +33,7 @@ import LiveArray from '../live-array';
 import { BatchQueryBuilder } from './batch';
 
 export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
-  T extends ModelIdentity
+  T extends RecordIdentity
 > extends BaseQueryOrTransformBuilder implements PromiseLike<T[]> {
   expression: FindRelatedRecords;
 
@@ -162,14 +162,14 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
     ) as Promise<T[]>;
   }
 
-  merge<K extends ModelIdentity = T>(
+  merge<K extends RecordIdentity = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
   }
 }
 
-export class LiveFindRelatedRecordsQueryBuilder<T extends ModelIdentity>
+export class LiveFindRelatedRecordsQueryBuilder<T extends RecordIdentity>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<LiveArray<T>> {
   expression: FindRelatedRecords;
@@ -242,7 +242,7 @@ export class LiveFindRelatedRecordsQueryBuilder<T extends ModelIdentity>
 }
 
 export class FindRelatedRecordsQueryOrTransformBuilder<
-  T extends ModelIdentity
+  T extends RecordIdentity
 > extends FilteredFindRelatedRecordsQueryOrTransformBuilder<T> {
   constructor(
     source: QueryableAndTransfomableSource,

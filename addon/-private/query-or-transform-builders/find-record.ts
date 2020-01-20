@@ -10,21 +10,21 @@ import {
   peekRecordAttribute,
   peekRecord
 } from '../cache';
-import IdentityMap, { ModelIdentity } from '../identity-map';
+import IdentityMap from '../identity-map';
 import normalizeRecordProperties, {
   Properties
 } from '../utils/normalize-record-properties';
 import { mergeOptions } from './utils';
 import { BatchQueryBuilder } from './batch';
 
-export function findRecord<T extends ModelIdentity>(
+export function findRecord<T extends RecordIdentity>(
   identifier: RecordIdentity,
   source: QueryableAndTransfomableSource
 ) {
   return new FindRecordQueryOrTransformBuilder<T>(source, identifier);
 }
 
-export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
+export class FindRecordQueryOrTransformBuilder<T extends RecordIdentity>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<T> {
   expression: FindRecord;
@@ -70,7 +70,7 @@ export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
     ) as Promise<T>;
   }
 
-  merge<K extends ModelIdentity = T>(
+  merge<K extends RecordIdentity = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);

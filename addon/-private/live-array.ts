@@ -6,9 +6,8 @@ import { SyncLiveQuery } from './live-query/sync-live-query';
 import { LiveQuerySubscription } from './live-query/live-query';
 import fromCallback from './utils/from-callback';
 import { cacheQuery } from './cache';
-import { ModelIdentity } from './identity-map';
 
-export default class LiveArray<T extends ModelIdentity>
+export default class LiveArray<T extends RecordIdentity>
   implements Iterable<T>, AsyncIterable<LiveArray<T>> {
   liveQuery: SyncLiveQuery;
 
@@ -76,12 +75,14 @@ export default class LiveArray<T extends ModelIdentity>
   }
 }
 
-function notifyContentChange<T extends ModelIdentity>(liveArray: LiveArray<T>) {
+function notifyContentChange<T extends RecordIdentity>(
+  liveArray: LiveArray<T>
+) {
   notifyPropertyChange(liveArray, 'length');
   notifyPropertyChange(liveArray, '[]');
 }
 
 const subscriptions = new WeakMap<
-  LiveArray<ModelIdentity>,
+  LiveArray<RecordIdentity>,
   LiveQuerySubscription
 >();

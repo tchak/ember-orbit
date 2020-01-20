@@ -29,12 +29,8 @@ export class RecordIdentitySerializer<T extends RecordIdentity>
   }
 }
 
-export interface ModelIdentity
-  extends RecordIdentity,
-    Record<string, unknown> {}
-
 export default class IdentityMap<
-  T extends ModelIdentity
+  T extends RecordIdentity
 > extends OrbitIdentityMap<RecordIdentity, T> {
   private _patchListener: () => void;
   private _liveArrays: Set<LiveArray<T>>;
@@ -56,7 +52,7 @@ export default class IdentityMap<
     identityMapCache.set(this.cache, this);
   }
 
-  static for<T extends ModelIdentity>(cache: SyncRecordCache): IdentityMap<T> {
+  static for<T extends RecordIdentity>(cache: SyncRecordCache): IdentityMap<T> {
     const identityMap = identityMapCache.get(cache);
 
     if (!identityMap) {
@@ -126,7 +122,7 @@ export default class IdentityMap<
 export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
 export type LookupCacheResult<T> = LookupResult<T> | undefined;
 
-export function getSource<T extends ModelIdentity>(
+export function getSource<T extends RecordIdentity>(
   record: T
 ): QueryableAndTransfomableSource {
   const source = recordSourceCache.get(record);
@@ -138,11 +134,11 @@ export function getSource<T extends ModelIdentity>(
   return source;
 }
 
-export function hasSource<T extends ModelIdentity>(record: T): boolean {
+export function hasSource<T extends RecordIdentity>(record: T): boolean {
   return recordSourceCache.has(record);
 }
 
-function lookupQueryResultData<T extends ModelIdentity>(
+function lookupQueryResultData<T extends RecordIdentity>(
   identityMap: IdentityMap<T>,
   result: QueryResultData
 ): T | T[] | null {
@@ -172,7 +168,7 @@ function lookupQueryResultData<T extends ModelIdentity>(
   return null;
 }
 
-function generatePatchListener<T extends ModelIdentity>(
+function generatePatchListener<T extends RecordIdentity>(
   identityMap: IdentityMap<T>
 ): (operation: RecordOperation) => void {
   return (operation: RecordOperation) => {
@@ -206,7 +202,7 @@ function generatePatchListener<T extends ModelIdentity>(
   };
 }
 
-function notifyPropertyChange<T extends ModelIdentity>(
+function notifyPropertyChange<T extends RecordIdentity>(
   identityMap: IdentityMap<T>,
   identifier: RecordIdentity,
   property: string
@@ -231,10 +227,10 @@ function isQueryResultData(
 
 const identityMapCache = new WeakMap<
   SyncRecordCache,
-  IdentityMap<ModelIdentity>
+  IdentityMap<RecordIdentity>
 >();
 
 const recordSourceCache = new WeakMap<
-  ModelIdentity,
+  RecordIdentity,
   QueryableAndTransfomableSource
 >();

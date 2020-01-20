@@ -79,7 +79,7 @@ module('Integration - Model', function(hooks) {
       store.has({ type: 'star', id: record.id }),
       'record does not exist in cache'
     );
-    assert.ok(!record.$connected, 'record has been disconnected from store');
+    assert.ok(record.$disconnected, 'record has been disconnected from store');
     assert.throws(
       () => record.name,
       Error,
@@ -422,7 +422,10 @@ module('Integration - Model', function(hooks) {
       assert.equal(jupiterOrig.name, 'Jupiter Bis');
       assert.equal(jupiter, jupiterOrig);
 
-      assert.notOk(jupiterBis.$connected, 'forked record should be discarded');
+      assert.ok(
+        jupiterBis.$disconnected,
+        'record has been disconnected from store'
+      );
     });
   });
 });

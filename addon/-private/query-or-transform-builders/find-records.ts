@@ -16,7 +16,7 @@ import {
   liveQuery,
   QueryableAndTransfomableSource
 } from '../cache';
-import IdentityMap, { ModelIdentity } from '../identity-map';
+import IdentityMap from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,
@@ -29,9 +29,9 @@ import normalizeRecordProperties, {
 import LiveArray from '../live-array';
 import { BatchQueryBuilder } from './batch';
 
-export class FilteredFindRecordsQueryOrTransformBuilder<T extends ModelIdentity>
-  extends BaseQueryOrTransformBuilder
-  implements PromiseLike<T[]> {
+export class FilteredFindRecordsQueryOrTransformBuilder<
+  T extends RecordIdentity
+> extends BaseQueryOrTransformBuilder implements PromiseLike<T[]> {
   expression: FindRecords;
 
   constructor(
@@ -157,14 +157,14 @@ export class FilteredFindRecordsQueryOrTransformBuilder<T extends ModelIdentity>
     ) as Promise<T[]>;
   }
 
-  merge<K extends ModelIdentity = T>(
+  merge<K extends RecordIdentity = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
   }
 }
 
-export class LiveFindRecordsQueryBuilder<T extends ModelIdentity>
+export class LiveFindRecordsQueryBuilder<T extends RecordIdentity>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<LiveArray<T>> {
   expression: FindRecords;
@@ -237,7 +237,7 @@ export class LiveFindRecordsQueryBuilder<T extends ModelIdentity>
 }
 
 export class FindRecordsQueryOrTransformBuilder<
-  T extends ModelIdentity
+  T extends RecordIdentity
 > extends FilteredFindRecordsQueryOrTransformBuilder<T> {
   constructor(
     source: QueryableAndTransfomableSource,

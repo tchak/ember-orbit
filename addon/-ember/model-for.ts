@@ -3,9 +3,8 @@ import { getOwner } from '@ember/application';
 import { RecordIdentity, cloneRecordIdentity } from '@orbit/data';
 
 import { QueryableAndTransfomableSource } from '../-private/cache';
-import { ModelIdentity } from '../-private/identity-map';
 
-export function modelFor<T extends ModelIdentity>(
+export function modelFor<T extends RecordIdentity>(
   source: QueryableAndTransfomableSource,
   identifier: RecordIdentity
 ) {
