@@ -1,4 +1,24 @@
 import { deepMerge } from '@orbit/utils';
+import { camelize } from '@orbit/utils';
+
+export function modulesOfType(prefix, type) {
+  const regex = new RegExp('^' + prefix + '/' + type + '/?/');
+  const moduleNames = Object.keys(self.requirejs._eak_seen);
+  const found: string[] = [];
+
+  for (let moduleName of moduleNames) {
+    const matches = regex.exec(moduleName);
+    if (matches && matches.length === 1) {
+      // eslint-disable-next-line no-useless-escape
+      let name = moduleName.match(/[^\/]+\/?$/);
+      if (name && name[0]) {
+        found.push(name[0]);
+      }
+    }
+  }
+
+  return found;
+}
 
 export const DEFAULT_ORBIT_CONFIG = {
   types: {
@@ -38,6 +58,35 @@ export function initialize(application) {
   application.register('ember-orbit:config', config, {
     instantiate: false
   });
+
+  if (application.base) {
+    const modelNames = modulesOfType(
+      application.base.modulePrefix,
+      config.collections.models
+    ).map(camelize);
+
+    application.register('ember-orbit:model-names', modelNames, {
+      instantiate: false
+    });
+
+    const sourceNames = modulesOfType(
+      application.base.modulePrefix,
+      config.collections.sources
+    ).concat(['store']);
+
+    application.register('ember-orbit:source-names', sourceNames, {
+      instantiate: false
+    });
+
+    const strategyNames = modulesOfType(
+      application.base.modulePrefix,
+      config.collections.strategies
+    );
+
+    application.register('ember-orbit:strategy-names', strategyNames, {
+      instantiate: false
+    });
+  }
 }
 
 export default {

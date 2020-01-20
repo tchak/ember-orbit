@@ -13,6 +13,18 @@ export function initialize(application) {
   application.register('service:coordinator', Coordinator);
   application.register(`${source}:store`, StoreSource);
 
+  application.inject('service:schema', 'modelNames', 'ember-orbit:model-names');
+  application.inject(
+    'service:coordinator',
+    'sourceNames',
+    'ember-orbit:source-names'
+  );
+  application.inject(
+    'service:coordinator',
+    'strategyNames',
+    'ember-orbit:strategy-names'
+  );
+
   application.inject(source, 'schema', 'service:schema');
 }
 

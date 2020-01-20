@@ -22,7 +22,7 @@ export default function hasOne(
     const defaultAssigned = new WeakSet();
 
     function setDefaultValue(record: Model) {
-      const value = record.relatedRecord(key).value() || null;
+      const value = record.relatedRecord<Model, any>(key).value() || null;
       setValue(record, value);
     }
 
@@ -39,10 +39,10 @@ export default function hasOne(
     }
 
     function set(this: Model, value: any) {
-      const oldValue = this.relatedRecord(key).value() || null;
+      const oldValue = this.relatedRecord<Model, any>(key).value() || null;
 
       if (value !== oldValue) {
-        this.relatedRecord(key).replace(value);
+        this.relatedRecord<Model, any>(key).replace(value);
 
         return setValue(this, value);
       }

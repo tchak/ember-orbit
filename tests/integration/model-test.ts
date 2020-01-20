@@ -322,7 +322,7 @@ module('Integration - Model', function(hooks) {
   test('#relatedRecords.remove()', async function(assert) {
     const europa = await store.records('moon').add({ name: 'Europa' });
     const io = await store.records('moon').add({ name: 'Io' });
-    const jupiter = await store.records('planet').add({
+    const jupiter = await store.records<Planet>('planet').add({
       name: 'Jupiter',
       moons: [europa, io]
     });
@@ -426,6 +426,20 @@ module('Integration - Model', function(hooks) {
         jupiterBis.$disconnected,
         'record has been disconnected from store'
       );
+    });
+  });
+
+  module('ModelClass', function() {
+    test('#record / #records', async function(assert) {
+      const jupiter = await store.records<Planet>('planet').add({
+        name: 'Jupiter'
+      });
+
+      const planet: Planet = await Planet.record({ id: jupiter.id });
+      assert.equal(jupiter, planet);
+
+      const planets: Planet[] = await Planet.records();
+      assert.deepEqual([jupiter], planets);
     });
   });
 });

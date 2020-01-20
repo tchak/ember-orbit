@@ -261,7 +261,7 @@ module('Integration - Store', function(hooks) {
 
   test('#record().relatedRecord()', async function(assert) {
     const sun = await store.records('star').add({ name: 'The Sun' });
-    const jupiter = await store.records('planet').add({
+    const jupiter = await store.records<Planet>('planet').add({
       name: 'Jupiter',
       sun
     });
@@ -278,7 +278,7 @@ module('Integration - Store', function(hooks) {
       moons: [io, callisto]
     });
     const records = await store
-      .record(jupiter)
+      .record<Planet>(jupiter)
       .peek()
       .relatedRecords('moons');
 

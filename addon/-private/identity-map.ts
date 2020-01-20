@@ -18,6 +18,7 @@ import { SyncLiveQuery } from './live-query/sync-live-query';
 import LiveArray from './live-array';
 import { QueryableAndTransfomableSource, has } from './cache';
 import { modelFor } from '../-ember/model-for';
+import { ModelClass } from './model';
 
 export class RecordIdentitySerializer<T extends RecordIdentity>
   implements IdentitySerializer<RecordIdentity> {
@@ -122,8 +123,8 @@ export default class IdentityMap<
 export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
 export type LookupCacheResult<T> = LookupResult<T> | undefined;
 
-export function getSource<T extends RecordIdentity>(
-  record: T
+export function getRecordSource(
+  record: RecordIdentity
 ): QueryableAndTransfomableSource {
   const source = recordSourceCache.get(record);
 
@@ -132,6 +133,25 @@ export function getSource<T extends RecordIdentity>(
   }
 
   return source;
+}
+
+export function getModelSource(
+  model: ModelClass
+): QueryableAndTransfomableSource {
+  const source = modelSourceCache.get(model);
+
+  if (!source) {
+    throw new Error('record has been removed from the Store');
+  }
+
+  return source;
+}
+
+export function setModelSource(
+  model: ModelClass,
+  source: QueryableAndTransfomableSource
+) {
+  modelSourceCache.set(model, source);
 }
 
 export function hasSource<T extends RecordIdentity>(record: T): boolean {
@@ -232,5 +252,10 @@ const identityMapCache = new WeakMap<
 
 const recordSourceCache = new WeakMap<
   RecordIdentity,
+  QueryableAndTransfomableSource
+>();
+
+const modelSourceCache = new WeakMap<
+  ModelClass,
   QueryableAndTransfomableSource
 >();

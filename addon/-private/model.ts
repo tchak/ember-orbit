@@ -9,12 +9,36 @@ import { SyncRecordCache } from '@orbit/record-cache';
 
 import { Properties } from './utils/normalize-record-properties';
 import { QueryableAndTransfomableSource } from './cache';
-import { getSource, hasSource } from './identity-map';
 import {
+  getRecordSource,
+  getModelSource,
+  hasSource,
+  setModelSource
+} from './identity-map';
+import {
+  findRecord,
+  FindRecordQueryOrTransformBuilder,
+  FindRecordsQueryOrTransformBuilder,
   FindRelatedRecordQueryOrTransformBuilder,
-  FindRelatedRecordsQueryOrTransformBuilder,
-  findRecord
+  FindRelatedRecordsQueryOrTransformBuilder
 } from './query-or-transform-builders';
+
+export interface Identifier {
+  id: string;
+}
+
+export interface ModelClass {
+  modelName: string;
+  schema: ModelDefinition;
+  setSource(source: QueryableAndTransfomableSource): void;
+  record<T extends Model>(
+    identifier: Identifier,
+    options?: object
+  ): FindRecordQueryOrTransformBuilder<T>;
+  records<T extends Model>(
+    options?: object
+  ): FindRecordsQueryOrTransformBuilder<T>;
+}
 
 export interface ModelInjections {
   identity: RecordIdentity;
@@ -25,7 +49,7 @@ export default class Model implements RecordIdentity {
   $identity: RecordIdentity;
 
   get $source(): QueryableAndTransfomableSource {
-    return getSource(this);
+    return getRecordSource(this);
   }
 
   get $cache(): SyncRecordCache {
@@ -58,26 +82,26 @@ export default class Model implements RecordIdentity {
     return this.$identity.type;
   }
 
-  relatedRecord<T extends Model = Model>(
-    name: string,
+  relatedRecord<T extends Model, K extends keyof this>(
+    name: K,
     options?: object
   ): FindRelatedRecordQueryOrTransformBuilder<T> {
     return new FindRelatedRecordQueryOrTransformBuilder<T>(
       this.$source,
       this,
-      name,
+      name as string,
       options
     );
   }
 
-  relatedRecords<T extends Model = Model>(
-    name: string,
+  relatedRecords<T extends Model, K extends keyof this>(
+    name: K,
     options?: object
   ): FindRelatedRecordsQueryOrTransformBuilder<T> {
     return new FindRelatedRecordsQueryOrTransformBuilder<T>(
       this.$source,
       this,
-      name,
+      name as string,
       options
     );
   }
@@ -126,6 +150,33 @@ export default class Model implements RecordIdentity {
 
   unload(): void {
     this.$ref.unload();
+  }
+
+  static modelName: string;
+
+  static setSource(source: QueryableAndTransfomableSource): void {
+    setModelSource(this, source);
+  }
+
+  static record<T extends Model>(
+    identifier: Identifier,
+    options?: object
+  ): FindRecordQueryOrTransformBuilder<T> {
+    return new FindRecordQueryOrTransformBuilder<T>(
+      getModelSource(this),
+      { ...identifier, type: this.modelName },
+      options
+    );
+  }
+
+  static records<T extends Model>(
+    options?: object
+  ): FindRecordsQueryOrTransformBuilder<T> {
+    return new FindRecordsQueryOrTransformBuilder<T>(
+      getModelSource(this),
+      this.modelName,
+      options
+    );
   }
 
   static get schema(): ModelDefinition {

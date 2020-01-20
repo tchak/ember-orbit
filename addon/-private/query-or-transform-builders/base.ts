@@ -2,7 +2,7 @@ import { QueryExpression } from '@orbit/data';
 
 import { QueryableAndTransfomableSource } from '../cache';
 
-export class BaseQueryOrTransformBuilder {
+export abstract class BaseQueryOrTransformBuilder {
   source: QueryableAndTransfomableSource;
   expression: QueryExpression;
   options?: object;
