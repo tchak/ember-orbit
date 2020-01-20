@@ -361,11 +361,11 @@ module('Integration - Store', function(hooks) {
     });
 
     assert.notOk(
-      store.has({ type: 'planet', id: jupiter.id }),
+      store.cache.has({ type: 'planet', id: jupiter.id }),
       'store does not contain record'
     );
     assert.ok(
-      forkedStore.has({ type: 'planet', id: jupiter.id }),
+      forkedStore.cache.has({ type: 'planet', id: jupiter.id }),
       'fork includes record'
     );
   });
@@ -379,11 +379,11 @@ module('Integration - Store', function(hooks) {
     await store.merge(forkedStore);
 
     assert.ok(
-      store.has({ type: 'planet', id: jupiter.id }),
+      store.cache.has({ type: 'planet', id: jupiter.id }),
       'store includes record'
     );
     assert.ok(
-      forkedStore.has({ type: 'planet', id: jupiter.id }),
+      forkedStore.cache.has({ type: 'planet', id: jupiter.id }),
       'fork includes record'
     );
   });
@@ -438,11 +438,11 @@ module('Integration - Store', function(hooks) {
     assert.deepEqual(fork.allTransforms(), [addRecordD, addRecordE]);
 
     assert.deepEqual(fork.records('planet').peek().length, 5);
-    assert.ok(fork.has(recordA));
-    assert.ok(fork.has(recordB));
-    assert.ok(fork.has(recordC));
-    assert.ok(fork.has(recordD));
-    assert.ok(fork.has(recordE));
+    assert.ok(fork.cache.has(recordA));
+    assert.ok(fork.cache.has(recordB));
+    assert.ok(fork.cache.has(recordC));
+    assert.ok(fork.cache.has(recordD));
+    assert.ok(fork.cache.has(recordE));
   });
 
   module('Batch Query', function() {

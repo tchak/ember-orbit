@@ -76,7 +76,7 @@ module('Integration - Model', function(hooks) {
     await record.remove();
 
     assert.notOk(
-      store.has({ type: 'star', id: record.id }),
+      store.cache.has({ type: 'star', id: record.id }),
       'record does not exist in cache'
     );
     assert.ok(record.$disconnected, 'record has been disconnected from store');
@@ -244,7 +244,7 @@ module('Integration - Model', function(hooks) {
 
     await waitForSource(store);
 
-    assert.ok(!store.has(identifier), 'removed from identity map');
+    assert.ok(!store.cache.has(identifier), 'removed from identity map');
   });
 
   test('#relatedRecord', async function(assert) {

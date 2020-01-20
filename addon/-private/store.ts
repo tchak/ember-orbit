@@ -3,7 +3,8 @@ import { getOwner, setOwner } from '@ember/application';
 import { RecordIdentity } from '@orbit/data';
 import MemorySource, {
   MemorySourceSettings,
-  MemorySourceMergeOptions
+  MemorySourceMergeOptions,
+  MemoryCache
 } from '@orbit/memory';
 
 import Model from './model';
@@ -80,8 +81,17 @@ export default class Store extends MemorySource {
     );
   }
 
-  // TODO: we should probably expose has() on cache interface upstream
-  has(identifier: RecordIdentity): boolean {
-    return !!this.cache.getRecordSync(identifier);
+  get cache(): StoreCache {
+    return super.cache as StoreCache;
   }
 }
+
+interface StoreCache extends MemoryCache {
+  has(identifier: RecordIdentity): boolean;
+}
+
+(MemoryCache.prototype as StoreCache).has = function(
+  identifier: RecordIdentity
+): boolean {
+  return !!this.getRecordSync(identifier);
+};
