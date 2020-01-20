@@ -122,6 +122,10 @@ export default class Model implements ModelIdentity {
     return this.$ref.remove(options);
   }
 
+  reload(): Promise<this> {
+    return this.$ref.reload();
+  }
+
   unload(): void {
     this.$ref.unload();
   }

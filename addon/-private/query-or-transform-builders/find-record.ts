@@ -62,6 +62,14 @@ export class FindRecordQueryOrTransformBuilder<T extends ModelIdentity>
     ).then<T>(onfullfiled, onrejected);
   }
 
+  reload(): Promise<T> {
+    return sourceQuery(
+      this.source,
+      this.toQueryExpression(),
+      mergeOptions(this.options, { reload: true })
+    ) as Promise<T>;
+  }
+
   merge<K extends ModelIdentity = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {

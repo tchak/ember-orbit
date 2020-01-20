@@ -1,4 +1,5 @@
 import { QueryExpression } from '@orbit/data';
+import { deepMerge } from '@orbit/utils';
 
 import {
   QueryableAndTransfomableSource,
@@ -8,7 +9,7 @@ import {
 } from '../cache';
 import { ModelIdentity } from '../identity-map';
 import { BaseQueryOrTransformBuilder } from './base';
-import { deepMerge } from '@orbit/utils';
+import { mergeOptions } from './utils';
 
 export class BatchQueryBuilder<T extends ModelIdentity>
   implements PromiseLike<LookupResult<T>> {
@@ -47,6 +48,14 @@ export class BatchQueryBuilder<T extends ModelIdentity>
       this.toQueryExpressions(),
       this.options
     ).then<K>(onfullfiled, onrejected);
+  }
+
+  reload(): Promise<LookupResult<T>> {
+    return sourceQuery(
+      this.source,
+      this.toQueryExpressions(),
+      mergeOptions(this.options, { reload: true })
+    );
   }
 
   merge<K extends ModelIdentity = T>(

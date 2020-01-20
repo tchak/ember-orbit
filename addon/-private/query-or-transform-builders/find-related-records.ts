@@ -154,6 +154,14 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
     ).then<K>(onfullfiled, onrejected);
   }
 
+  reload(): Promise<T[]> {
+    return sourceQuery(
+      this.source,
+      this.toQueryExpression(),
+      mergeOptions(this.options, { reload: true })
+    ) as Promise<T[]>;
+  }
+
   merge<K extends ModelIdentity = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
@@ -222,6 +230,14 @@ export class LiveFindRelatedRecordsQueryBuilder<T extends ModelIdentity>
     return sourceQuery(this.source, this.toQueryExpression(), this.options)
       .then(() => this.peek())
       .then<K>(onfullfiled, onrejected);
+  }
+
+  reload(): Promise<LiveArray<T>> {
+    return sourceQuery(
+      this.source,
+      this.toQueryExpression(),
+      mergeOptions(this.options, { reload: true })
+    ).then(() => this.peek());
   }
 }
 
