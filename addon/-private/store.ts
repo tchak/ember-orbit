@@ -35,6 +35,7 @@ export default class Store extends MemorySource {
     settings.name = settings.name || 'store';
     super(settings);
 
+    patchStoreCache(this.cache);
     IdentityMap.setup(this);
   }
 
@@ -63,14 +64,14 @@ export default class Store extends MemorySource {
     return super.merge(source, options);
   }
 
-  record<T extends Model = Model>(
+  record<T extends Model>(
     identifier: RecordIdentity,
     options?: object
   ): FindRecordQueryOrTransformBuilder<T> {
     return new FindRecordQueryOrTransformBuilder<T>(this, identifier, options);
   }
 
-  records<T extends Model = Model>(
+  records<T extends Model>(
     typeOrIdentifiers: string | RecordIdentity[],
     options?: object
   ): FindRecordsQueryOrTransformBuilder<T> {
@@ -88,10 +89,23 @@ export default class Store extends MemorySource {
 
 interface StoreCache extends MemoryCache {
   has(identifier: RecordIdentity): boolean;
+  record<T extends Model>(identifier: RecordIdentity): T | undefined;
 }
 
-(MemoryCache.prototype as StoreCache).has = function(
-  identifier: RecordIdentity
-): boolean {
-  return !!this.getRecordSync(identifier);
-};
+function patchStoreCache(cache: StoreCache): void {
+  if (!cache.has) {
+    cache.has = function(identifier: RecordIdentity): boolean {
+      return !!this.getRecordSync(identifier);
+    };
+
+    cache.record = function<T extends Model>(
+      identifier: RecordIdentity
+    ): T | undefined {
+      const record = this.getRecordSync(identifier);
+      if (record) {
+        return IdentityMap.for<T>(this).lookup(record) as T;
+      }
+      return record;
+    };
+  }
+}

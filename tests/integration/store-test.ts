@@ -242,7 +242,7 @@ module('Integration - Store', function(hooks) {
 
   test('#record()', async function(assert) {
     const earth = await store.records('planet').add({ name: 'Earth' });
-    const record = await store.record(earth);
+    const record: Planet = await store.record(earth);
     assert.strictEqual(record, earth);
   });
 
@@ -252,7 +252,7 @@ module('Integration - Store', function(hooks) {
       .records<Planet>('planet')
       .add({ name: 'Jupiter' });
 
-    const records = await store.records('planet');
+    const records: Planet[] = await store.records('planet');
 
     assert.equal(records.length, 2);
     assert.ok(records.includes(earth));
