@@ -9,12 +9,7 @@ import { SyncRecordCache } from '@orbit/record-cache';
 
 import { Properties } from './utils/normalize-record-properties';
 import { QueryableAndTransfomableSource } from './cache';
-import {
-  getRecordSource,
-  getModelSource,
-  hasSource,
-  setModelSource
-} from './identity-map';
+import { getRecordSource, getModelSource, hasSource } from './identity-map';
 import {
   findRecord,
   FindRecordQueryOrTransformBuilder,
@@ -25,19 +20,6 @@ import {
 
 export interface Identifier {
   id: string;
-}
-
-export interface ModelClass {
-  modelName: string;
-  schema: ModelDefinition;
-  setSource(source: QueryableAndTransfomableSource): void;
-  record<T extends Model>(
-    identifier: Identifier,
-    options?: object
-  ): FindRecordQueryOrTransformBuilder<T>;
-  records<T extends Model>(
-    options?: object
-  ): FindRecordsQueryOrTransformBuilder<T>;
 }
 
 export interface ModelInjections {
@@ -153,10 +135,6 @@ export default class Model implements RecordIdentity {
   }
 
   static modelName: string;
-
-  static setSource(source: QueryableAndTransfomableSource): void {
-    setModelSource(this, source);
-  }
 
   static record<T extends Model>(
     identifier: Identifier,

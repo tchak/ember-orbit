@@ -1,4 +1,6 @@
 import { DEBUG } from '@glimmer/env';
+import { getOwner } from '@ember/application';
+
 import {
   RecordIdentity,
   serializeRecordIdentity,
@@ -18,7 +20,7 @@ import { SyncLiveQuery } from './live-query/sync-live-query';
 import LiveArray from './live-array';
 import { QueryableAndTransfomableSource, has } from './cache';
 import { modelFor } from '../-ember/model-for';
-import { ModelClass } from './model';
+import Model from './model';
 
 export class RecordIdentitySerializer<T extends RecordIdentity>
   implements IdentitySerializer<RecordIdentity> {
@@ -136,22 +138,14 @@ export function getRecordSource(
 }
 
 export function getModelSource(
-  model: ModelClass
+  model: typeof Model
 ): QueryableAndTransfomableSource {
-  const source = modelSourceCache.get(model);
+  const owner = getOwner(model);
+  const {
+    types: { source }
+  } = owner.lookup('ember-orbit:config');
 
-  if (!source) {
-    throw new Error('record has been removed from the Store');
-  }
-
-  return source;
-}
-
-export function setModelSource(
-  model: ModelClass,
-  source: QueryableAndTransfomableSource
-) {
-  modelSourceCache.set(model, source);
+  return owner.lookup(`${source}:store`);
 }
 
 export function hasSource<T extends RecordIdentity>(record: T): boolean {
@@ -252,10 +246,5 @@ const identityMapCache = new WeakMap<
 
 const recordSourceCache = new WeakMap<
   RecordIdentity,
-  QueryableAndTransfomableSource
->();
-
-const modelSourceCache = new WeakMap<
-  ModelClass,
   QueryableAndTransfomableSource
 >();

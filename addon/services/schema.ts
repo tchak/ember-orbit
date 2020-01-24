@@ -1,4 +1,4 @@
-import { getOwner } from '@ember/application';
+import { getOwner, setOwner } from '@ember/application';
 import { singularize, pluralize } from 'ember-inflector';
 import { Schema, SchemaSettings, ModelDefinition } from '@orbit/data';
 
@@ -15,9 +15,10 @@ export default {
       const modelNames = injections.modelNames || [];
 
       for (let modelName of modelNames) {
-        models[modelName] = owner.factoryFor(
-          `${types.model}:${modelName}`
-        ).class.schema;
+        const klass = owner.factoryFor(`${types.model}:${modelName}`).class;
+        setOwner(klass, owner);
+        klass.modelName = modelName;
+        models[modelName] = klass.schema;
       }
 
       injections.models = models;
