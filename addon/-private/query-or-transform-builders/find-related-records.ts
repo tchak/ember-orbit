@@ -9,6 +9,8 @@ import {
 } from '@orbit/data';
 import { clone } from '@orbit/utils';
 
+import Store from '../store';
+import Model from '../model';
 import { BaseQueryOrTransformBuilder } from './base';
 import {
   sourceQuery,
@@ -16,7 +18,6 @@ import {
   liveQuery,
   peekRelationMeta,
   peekRelationLinks,
-  QueryableAndTransfomableSource,
   peekRelatedRecords
 } from '../cache';
 import IdentityMap from '../identity-map';
@@ -32,16 +33,12 @@ import normalizeRecordProperties, {
 import LiveArray from '../live-array';
 import { BatchQueryBuilder } from './batch';
 
-export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
-  T extends RecordIdentity
-> extends BaseQueryOrTransformBuilder implements PromiseLike<T[]> {
+export class FilteredFindRelatedRecordsQueryOrTransformBuilder<T extends Model>
+  extends BaseQueryOrTransformBuilder
+  implements PromiseLike<T[]> {
   expression: FindRelatedRecords;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    expression: QueryExpression,
-    options?: object
-  ) {
+  constructor(source: Store, expression: QueryExpression, options?: object) {
     super(source, expression, options);
     this.expression = expression as FindRelatedRecords;
   }
@@ -162,23 +159,19 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<
     ) as Promise<T[]>;
   }
 
-  merge<K extends RecordIdentity = T>(
+  merge<K extends Model = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
   }
 }
 
-export class LiveFindRelatedRecordsQueryBuilder<T extends RecordIdentity>
+export class LiveFindRelatedRecordsQueryBuilder<T extends Model>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<LiveArray<T>> {
   expression: FindRelatedRecords;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    expression: QueryExpression,
-    options?: object
-  ) {
+  constructor(source: Store, expression: QueryExpression, options?: object) {
     super(source, expression, options);
     this.expression = expression as FindRelatedRecords;
   }
@@ -242,10 +235,10 @@ export class LiveFindRelatedRecordsQueryBuilder<T extends RecordIdentity>
 }
 
 export class FindRelatedRecordsQueryOrTransformBuilder<
-  T extends RecordIdentity
+  T extends Model
 > extends FilteredFindRelatedRecordsQueryOrTransformBuilder<T> {
   constructor(
-    source: QueryableAndTransfomableSource,
+    source: Store,
     record: RecordIdentity,
     relationship: string,
     options?: object

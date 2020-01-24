@@ -1,26 +1,19 @@
-import { QueryExpression, RecordIdentity } from '@orbit/data';
+import { QueryExpression } from '@orbit/data';
 import { deepMerge } from '@orbit/utils';
 
-import {
-  QueryableAndTransfomableSource,
-  cacheQuery,
-  sourceQuery,
-  LookupResult
-} from '../cache';
+import Store from '../store';
+import Model from '../model';
+import { cacheQuery, sourceQuery, LookupResult } from '../cache';
 import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
 
-export class BatchQueryBuilder<T extends RecordIdentity>
+export class BatchQueryBuilder<T extends Model>
   implements PromiseLike<LookupResult<T>> {
-  source: QueryableAndTransfomableSource;
+  source: Store;
   expressions: QueryExpression[];
   options?: object;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    expressions: QueryExpression[],
-    options?: object
-  ) {
+  constructor(source: Store, expressions: QueryExpression[], options?: object) {
     this.source = source;
     this.expressions = expressions;
     this.options = options;
@@ -57,20 +50,20 @@ export class BatchQueryBuilder<T extends RecordIdentity>
     );
   }
 
-  merge<K extends RecordIdentity = T>(
+  merge<K extends Model = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return merge<T | K>(this.toQueryExpressions(), queryBuilders);
   }
 
-  static merge<T extends RecordIdentity>(
+  static merge<T extends Model>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ) {
     return merge<T>([], queryBuilders);
   }
 }
 
-function merge<T extends RecordIdentity>(
+function merge<T extends Model>(
   queryExpressions: QueryExpression[],
   queryBuilders: BaseQueryOrTransformBuilder[]
 ) {

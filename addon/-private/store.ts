@@ -1,5 +1,3 @@
-import { getOwner, setOwner } from '@ember/application';
-
 import { RecordIdentity } from '@orbit/data';
 import MemorySource, {
   MemorySourceSettings,
@@ -18,29 +16,15 @@ export interface StoreSettings extends MemorySourceSettings {}
 export interface StoreMergeOptions extends MemorySourceMergeOptions {}
 
 export default class Store extends MemorySource {
-  static create(injections: StoreSettings = {}): Store {
-    const owner = injections.base
-      ? getOwner(injections.base)
-      : getOwner(injections);
-
-    Object.assign(injections, owner.ownerInjection());
-    const store = new this(injections);
-
-    setOwner(store, owner);
-
-    return store;
-  }
+  identityMap = new IdentityMap(this);
 
   constructor(settings: StoreSettings = {}) {
-    settings.name = settings.name || 'store';
     super(settings);
-
     patchStoreCache(this.cache);
-    IdentityMap.setup(this);
   }
 
   destroy(): void {
-    IdentityMap.teardown(this);
+    this.identityMap.destroy();
   }
 
   get base(): Store {
@@ -57,7 +41,13 @@ export default class Store extends MemorySource {
     settings.transformBuilder = this.transformBuilder;
     settings.base = this;
 
-    return Store.create(settings);
+    const store = new Store(settings);
+
+    if (storeConfig && storeConfig.afterFork) {
+      storeConfig.afterFork(this, store);
+    }
+
+    return store;
   }
 
   merge(source: Store, options?: StoreMergeOptions): Promise<void> {
@@ -85,7 +75,30 @@ export default class Store extends MemorySource {
   get cache(): StoreCache {
     return super.cache as StoreCache;
   }
+
+  static config(config: Partial<StoreConfig>): void {
+    storeConfig = config;
+  }
+
+  static storeFor(modelClass: typeof Model): Store {
+    if (storeConfig && storeConfig.storeFor) {
+      return storeConfig.storeFor(modelClass);
+    }
+    throw new Error(`Can't find a Store for ${modelClass}.`);
+  }
+
+  static modelFor<T extends Model>(
+    store: Store,
+    identifier: RecordIdentity
+  ): T {
+    if (storeConfig && storeConfig.modelFor) {
+      return storeConfig.modelFor(store, identifier);
+    }
+    return new Model(store, identifier) as T;
+  }
 }
+
+let storeConfig: Partial<StoreConfig>;
 
 interface StoreCache extends MemoryCache {
   has(identifier: RecordIdentity): boolean;
@@ -97,15 +110,11 @@ function patchStoreCache(cache: StoreCache): void {
     cache.has = function(identifier: RecordIdentity): boolean {
       return !!this.getRecordSync(identifier);
     };
-
-    cache.record = function<T extends Model>(
-      identifier: RecordIdentity
-    ): T | undefined {
-      const record = this.getRecordSync(identifier);
-      if (record) {
-        return IdentityMap.for<T>(this).lookup(record) as T;
-      }
-      return record;
-    };
   }
+}
+
+export interface StoreConfig {
+  storeFor(model: typeof Model): Store;
+  modelFor<T extends Model>(store: Store, identifier: RecordIdentity): T;
+  afterFork(store: Store, forkedStore: Store): void;
 }

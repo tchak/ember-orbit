@@ -4,12 +4,13 @@ import {
   cloneRecordIdentity
 } from '@orbit/data';
 
+import Store from '../store';
+import Model from '../model';
 import {
   sourceQuery,
   cacheQuery,
   peekRelationMeta,
   peekRelationLinks,
-  QueryableAndTransfomableSource,
   peekRelatedRecord
 } from '../cache';
 import IdentityMap from '../identity-map';
@@ -17,13 +18,13 @@ import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
 import { BatchQueryBuilder } from './batch';
 
-export class FindRelatedRecordQueryOrTransformBuilder<T extends RecordIdentity>
+export class FindRelatedRecordQueryOrTransformBuilder<T extends Model>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<T> {
   expression: FindRelatedRecord;
 
   constructor(
-    source: QueryableAndTransfomableSource,
+    source: Store,
     record: RecordIdentity,
     relationship: string,
     options?: object
@@ -65,7 +66,7 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends RecordIdentity>
     ) as Promise<T | null>;
   }
 
-  merge<K extends RecordIdentity = T>(
+  merge<K extends Model = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);

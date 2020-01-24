@@ -5,55 +5,51 @@ import {
   AttributeDefinition,
   RelationshipDefinition
 } from '@orbit/data';
-import { SyncRecordCache } from '@orbit/record-cache';
 
+import Store from './store';
 import { Properties } from './utils/normalize-record-properties';
-import { QueryableAndTransfomableSource } from './cache';
-import { getRecordSource, getModelSource, hasSource } from './identity-map';
 import {
-  findRecord,
-  FindRecordQueryOrTransformBuilder,
   FindRecordsQueryOrTransformBuilder,
   FindRelatedRecordQueryOrTransformBuilder,
   FindRelatedRecordsQueryOrTransformBuilder
 } from './query-or-transform-builders';
 
-export interface Identifier {
-  id: string;
-}
-
 export interface ModelInjections {
   identity: RecordIdentity;
-  source: QueryableAndTransfomableSource;
+  store: Store;
 }
 
 export default class Model implements RecordIdentity {
+  private _store: Store;
   $identity: RecordIdentity;
 
-  get $source(): QueryableAndTransfomableSource {
-    return getRecordSource(this);
-  }
+  get $store(): Store {
+    const store = this._store;
 
-  get $cache(): SyncRecordCache {
-    return this.$source.cache;
+    if (!store) {
+      throw new Error('record has been removed from the Store');
+    }
+
+    return store;
   }
 
   get $ref() {
-    return findRecord<this>(this, this.$source);
+    return this.$store.record<this>(this.$identity);
   }
 
   get $disconnected(): boolean {
-    return !hasSource(this);
+    return !this._store;
   }
 
   static create(injections: ModelInjections) {
-    const { identity, ..._injections } = injections;
-    const record = new this(identity);
+    const { store, identity, ..._injections } = injections;
+    const record = new this(store, identity);
     return Object.assign(record, _injections);
   }
 
-  constructor(identity: RecordIdentity) {
+  constructor(store: Store, identity: RecordIdentity) {
     this.$identity = identity;
+    this._store = store;
   }
 
   get id(): string {
@@ -69,7 +65,7 @@ export default class Model implements RecordIdentity {
     options?: object
   ): FindRelatedRecordQueryOrTransformBuilder<T> {
     return new FindRelatedRecordQueryOrTransformBuilder<T>(
-      this.$source,
+      this.$store,
       this,
       name as string,
       options
@@ -81,7 +77,7 @@ export default class Model implements RecordIdentity {
     options?: object
   ): FindRelatedRecordsQueryOrTransformBuilder<T> {
     return new FindRelatedRecordsQueryOrTransformBuilder<T>(
-      this.$source,
+      this.$store,
       this,
       name as string,
       options
@@ -89,17 +85,19 @@ export default class Model implements RecordIdentity {
   }
 
   draft(force = false): this {
-    if (force || !this.$source.base) {
-      const forkedSource = this.$source.fork();
-      return findRecord<this>(this, forkedSource).value() as this;
+    if (force || !this.$store.base) {
+      return this.$store
+        .fork()
+        .record<this>(this.$identity)
+        .value() as this;
     }
     return this;
   }
 
   async save(discardDraftSource = true): Promise<this> {
-    if (this.$source.base) {
-      const source = this.$source.base;
-      const draftSource = this.$source;
+    if (this.$store.base) {
+      const source = this.$store.base;
+      const draftSource = this.$store;
 
       await draftSource.requestQueue.process();
       //FIXME
@@ -112,7 +110,7 @@ export default class Model implements RecordIdentity {
       if (discardDraftSource) {
         draftSource.destroy();
       }
-      return findRecord<this>(this, source).value() as this;
+      return source.record<this>(this.$identity).value() as this;
     }
 
     return this;
@@ -136,22 +134,11 @@ export default class Model implements RecordIdentity {
 
   static modelName: string;
 
-  static record<T extends Model>(
-    identifier: Identifier,
-    options?: object
-  ): FindRecordQueryOrTransformBuilder<T> {
-    return new FindRecordQueryOrTransformBuilder<T>(
-      getModelSource(this),
-      { ...identifier, type: this.modelName },
-      options
-    );
-  }
-
   static records<T extends Model>(
     options?: object
   ): FindRecordsQueryOrTransformBuilder<T> {
     return new FindRecordsQueryOrTransformBuilder<T>(
-      getModelSource(this),
+      Store.storeFor(this),
       this.modelName,
       options
     );

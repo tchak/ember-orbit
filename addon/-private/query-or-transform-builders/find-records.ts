@@ -9,13 +9,10 @@ import {
 } from '@orbit/data';
 import { clone } from '@orbit/utils';
 
+import Store from '../store';
+import Model from '../model';
 import { BaseQueryOrTransformBuilder } from './base';
-import {
-  sourceQuery,
-  cacheQuery,
-  liveQuery,
-  QueryableAndTransfomableSource
-} from '../cache';
+import { sourceQuery, cacheQuery, liveQuery } from '../cache';
 import IdentityMap from '../identity-map';
 import {
   mergeOptions,
@@ -28,17 +25,18 @@ import normalizeRecordProperties, {
 } from '../utils/normalize-record-properties';
 import LiveArray from '../live-array';
 import { BatchQueryBuilder } from './batch';
+import { FindRecordQueryOrTransformBuilder } from './find-record';
 
-export class FilteredFindRecordsQueryOrTransformBuilder<
-  T extends RecordIdentity
-> extends BaseQueryOrTransformBuilder implements PromiseLike<T[]> {
+export interface Identifier {
+  id: string;
+}
+
+export class FilteredFindRecordsQueryOrTransformBuilder<T extends Model>
+  extends BaseQueryOrTransformBuilder
+  implements PromiseLike<T[]> {
   expression: FindRecords;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    expression: QueryExpression,
-    options?: object
-  ) {
+  constructor(source: Store, expression: QueryExpression, options?: object) {
     super(source, expression, options);
     this.expression = expression as FindRecords;
   }
@@ -157,23 +155,19 @@ export class FilteredFindRecordsQueryOrTransformBuilder<
     ) as Promise<T[]>;
   }
 
-  merge<K extends RecordIdentity = T>(
+  merge<K extends Model = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
   }
 }
 
-export class LiveFindRecordsQueryBuilder<T extends RecordIdentity>
+export class LiveFindRecordsQueryBuilder<T extends Model>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<LiveArray<T>> {
   expression: FindRecords;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    expression: QueryExpression,
-    options?: object
-  ) {
+  constructor(source: Store, expression: QueryExpression, options?: object) {
     super(source, expression, options);
     this.expression = expression as FindRecords;
   }
@@ -237,10 +231,10 @@ export class LiveFindRecordsQueryBuilder<T extends RecordIdentity>
 }
 
 export class FindRecordsQueryOrTransformBuilder<
-  T extends RecordIdentity
+  T extends Model
 > extends FilteredFindRecordsQueryOrTransformBuilder<T> {
   constructor(
-    source: QueryableAndTransfomableSource,
+    source: Store,
     typeOrIdentities?: string | RecordIdentity[],
     options?: object
   ) {
@@ -255,6 +249,24 @@ export class FindRecordsQueryOrTransformBuilder<
     }
 
     super(source, expression, options);
+  }
+
+  find(
+    identifier: Identifier,
+    options?: object
+  ): FindRecordQueryOrTransformBuilder<T> {
+    return new FindRecordQueryOrTransformBuilder<T>(
+      this.source,
+      { ...identifier, type: this.expression.type as string },
+      mergeOptions(this.options, options)
+    );
+  }
+
+  has(identifier: Identifier) {
+    return !!this.source.cache.getRecordSync({
+      ...identifier,
+      type: this.expression.type as string
+    });
   }
 
   async add(properties: Properties = {}, options?: object) {

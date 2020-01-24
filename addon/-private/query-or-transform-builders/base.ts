@@ -1,17 +1,13 @@
 import { QueryExpression } from '@orbit/data';
 
-import { QueryableAndTransfomableSource } from '../cache';
+import Store from '../store';
 
 export abstract class BaseQueryOrTransformBuilder {
-  source: QueryableAndTransfomableSource;
+  source: Store;
   expression: QueryExpression;
   options?: object;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    expression: QueryExpression,
-    options?: object
-  ) {
+  constructor(source: Store, expression: QueryExpression, options?: object) {
     this.source = source;
     this.expression = expression;
     this.options = options;

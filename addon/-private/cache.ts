@@ -2,36 +2,19 @@ import {
   RecordIdentity,
   buildQuery,
   QueryOrExpressions,
-  Record as OrbitRecord,
-  Source,
-  Queryable,
-  Updatable
+  Record as OrbitRecord
 } from '@orbit/data';
 import { deepGet } from '@orbit/utils';
 import { SyncRecordCache } from '@orbit/record-cache';
 
-import LiveArray from './live-array';
-import { SyncLiveQuery } from './live-query/sync-live-query';
+import Store from './store';
+import Model from './model';
 import IdentityMap from './identity-map';
-
-export interface QueryableAndTransfomableSource
-  extends Source,
-    Queryable,
-    Updatable {
-  cache: SyncRecordCache;
-
-  base: QueryableAndTransfomableSource | undefined;
-  fork(): QueryableAndTransfomableSource;
-  merge(source: QueryableAndTransfomableSource): Promise<void>;
-  rebase(): void;
-  rollback(transformId: string, relativePosition: number): Promise<void>;
-
-  destroy(): void;
-}
+import LiveArray, { SyncLiveQuery } from './live-array';
 
 export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
 
-export function cacheQuery<T extends RecordIdentity>(
+export function cacheQuery<T extends Model>(
   cache: SyncRecordCache,
   queryOrExpressions: QueryOrExpressions,
   options?: object,
@@ -43,7 +26,7 @@ export function cacheQuery<T extends RecordIdentity>(
   return IdentityMap.for<T>(cache).lookup(result, query.expressions.length);
 }
 
-export function liveQuery<T extends RecordIdentity>(
+export function liveQuery<T extends Model>(
   cache: SyncRecordCache,
   queryOrExpressions: QueryOrExpressions,
   options?: object,
@@ -56,8 +39,8 @@ export function liveQuery<T extends RecordIdentity>(
   return IdentityMap.for<T>(cache).lookupLiveQuery(liveQuery);
 }
 
-export async function sourceQuery<T extends RecordIdentity>(
-  source: QueryableAndTransfomableSource,
+export async function sourceQuery<T extends Model>(
+  source: Store,
   queryOrExpressions: QueryOrExpressions,
   options?: object,
   id?: string

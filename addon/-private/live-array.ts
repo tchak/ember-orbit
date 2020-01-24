@@ -2,12 +2,16 @@ import { notifyPropertyChange } from '@ember/object';
 
 import { RecordIdentity, recordsInclude } from '@orbit/data';
 
+import Model from './model';
+import { cacheQuery } from './cache';
+
 import { SyncLiveQuery } from './live-query/sync-live-query';
 import { LiveQuerySubscription } from './live-query/live-query';
 import fromCallback from './utils/from-callback';
-import { cacheQuery } from './cache';
 
-export default class LiveArray<T extends RecordIdentity>
+export { SyncLiveQuery };
+
+export default class LiveArray<T extends Model>
   implements Iterable<T>, AsyncIterable<LiveArray<T>> {
   liveQuery: SyncLiveQuery;
 
@@ -75,14 +79,9 @@ export default class LiveArray<T extends RecordIdentity>
   }
 }
 
-function notifyContentChange<T extends RecordIdentity>(
-  liveArray: LiveArray<T>
-) {
+function notifyContentChange<T extends Model>(liveArray: LiveArray<T>) {
   notifyPropertyChange(liveArray, 'length');
   notifyPropertyChange(liveArray, '[]');
 }
 
-const subscriptions = new WeakMap<
-  LiveArray<RecordIdentity>,
-  LiveQuerySubscription
->();
+const subscriptions = new WeakMap<LiveArray<Model>, LiveQuerySubscription>();

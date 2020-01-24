@@ -1,5 +1,4 @@
 import { DEBUG } from '@glimmer/env';
-import { getOwner } from '@ember/application';
 
 import {
   RecordIdentity,
@@ -16,11 +15,9 @@ import {
 } from '@orbit/record-cache';
 import OrbitIdentityMap, { IdentitySerializer } from '@orbit/identity-map';
 
-import { SyncLiveQuery } from './live-query/sync-live-query';
-import LiveArray from './live-array';
-import { QueryableAndTransfomableSource, has } from './cache';
-import { modelFor } from '../-ember/model-for';
+import Store from './store';
 import Model from './model';
+import LiveArray, { SyncLiveQuery } from './live-array';
 
 export class RecordIdentitySerializer<T extends RecordIdentity>
   implements IdentitySerializer<RecordIdentity> {
@@ -32,19 +29,20 @@ export class RecordIdentitySerializer<T extends RecordIdentity>
   }
 }
 
-export default class IdentityMap<
-  T extends RecordIdentity
-> extends OrbitIdentityMap<RecordIdentity, T> {
+export default class IdentityMap<T extends Model> extends OrbitIdentityMap<
+  RecordIdentity,
+  T
+> {
   private _patchListener: () => void;
   private _liveArrays: Set<LiveArray<T>>;
 
-  source: QueryableAndTransfomableSource;
+  source: Store;
 
   get cache(): SyncRecordCache {
     return this.source.cache;
   }
 
-  constructor(source: QueryableAndTransfomableSource) {
+  constructor(source: Store) {
     const serializer = new RecordIdentitySerializer<T>();
     super({ serializer });
 
@@ -55,7 +53,7 @@ export default class IdentityMap<
     identityMapCache.set(this.cache, this);
   }
 
-  static for<T extends RecordIdentity>(cache: SyncRecordCache): IdentityMap<T> {
+  static for<T extends Model>(cache: SyncRecordCache): IdentityMap<T> {
     const identityMap = identityMapCache.get(cache);
 
     if (!identityMap) {
@@ -63,14 +61,6 @@ export default class IdentityMap<
     }
 
     return identityMap as IdentityMap<T>;
-  }
-
-  static setup(source: QueryableAndTransfomableSource): void {
-    new IdentityMap(source);
-  }
-
-  static teardown(source: QueryableAndTransfomableSource): void {
-    this.for(source.cache).destroy();
   }
 
   lookup(result: QueryResult, n = 1): LookupResult<T> {
@@ -95,12 +85,12 @@ export default class IdentityMap<
   unload(identifier: RecordIdentity, force = true): void {
     const record = this.get(identifier);
 
-    if (force && has(this.cache, identifier)) {
+    if (force && this.cache.getRecordSync(identifier)) {
       this.cache.patch(t => t.removeRecord(identifier));
     }
 
     if (record) {
-      recordSourceCache.delete(record);
+      delete (record as any)._store;
       this.delete(identifier);
     }
   }
@@ -109,7 +99,7 @@ export default class IdentityMap<
     this._patchListener();
 
     for (let record of this.values()) {
-      recordSourceCache.delete(record);
+      delete (record as any)._store;
     }
     this.clear();
 
@@ -125,34 +115,7 @@ export default class IdentityMap<
 export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
 export type LookupCacheResult<T> = LookupResult<T> | undefined;
 
-export function getRecordSource(
-  record: RecordIdentity
-): QueryableAndTransfomableSource {
-  const source = recordSourceCache.get(record);
-
-  if (!source) {
-    throw new Error('record has been removed from the Store');
-  }
-
-  return source;
-}
-
-export function getModelSource(
-  model: typeof Model
-): QueryableAndTransfomableSource {
-  const owner = getOwner(model);
-  const {
-    types: { source }
-  } = owner.lookup('ember-orbit:config');
-
-  return owner.lookup(`${source}:store`);
-}
-
-export function hasSource<T extends RecordIdentity>(record: T): boolean {
-  return recordSourceCache.has(record);
-}
-
-function lookupQueryResultData<T extends RecordIdentity>(
+function lookupQueryResultData<T extends Model>(
   identityMap: IdentityMap<T>,
   result: QueryResultData
 ): T | T[] | null {
@@ -170,9 +133,7 @@ function lookupQueryResultData<T extends RecordIdentity>(
     let record: T = identityMap.get(result);
 
     if (!record) {
-      record = modelFor<T>(identityMap.source, result);
-
-      recordSourceCache.set(record, identityMap.source);
+      record = Store.modelFor<T>(identityMap.source, result);
       identityMap.set(result, record);
     }
 
@@ -182,7 +143,7 @@ function lookupQueryResultData<T extends RecordIdentity>(
   return null;
 }
 
-function generatePatchListener<T extends RecordIdentity>(
+function generatePatchListener<T extends Model>(
   identityMap: IdentityMap<T>
 ): (operation: RecordOperation) => void {
   return (operation: RecordOperation) => {
@@ -216,7 +177,7 @@ function generatePatchListener<T extends RecordIdentity>(
   };
 }
 
-function notifyPropertyChange<T extends RecordIdentity>(
+function notifyPropertyChange<T extends Model>(
   identityMap: IdentityMap<T>,
   identifier: RecordIdentity,
   property: string
@@ -239,12 +200,4 @@ function isQueryResultData(
   return expressions > 1;
 }
 
-const identityMapCache = new WeakMap<
-  SyncRecordCache,
-  IdentityMap<RecordIdentity>
->();
-
-const recordSourceCache = new WeakMap<
-  RecordIdentity,
-  QueryableAndTransfomableSource
->();
+const identityMapCache = new WeakMap<SyncRecordCache, IdentityMap<Model>>();

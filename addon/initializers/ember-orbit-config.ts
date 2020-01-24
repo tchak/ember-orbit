@@ -1,5 +1,7 @@
 import { deepMerge } from '@orbit/utils';
 import { camelize } from '@orbit/utils';
+import { Store } from 'ember-orbit';
+import { EmberStoreConfig } from 'ember-orbit/store-config';
 
 export function modulesOfType(prefix, type) {
   const regex = new RegExp('^' + prefix + '/' + type + '/?/');
@@ -87,6 +89,8 @@ export function initialize(application) {
       instantiate: false
     });
   }
+
+  Store.config(EmberStoreConfig);
 }
 
 export default {

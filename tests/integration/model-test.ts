@@ -401,16 +401,16 @@ module('Integration - Model', function(hooks) {
 
       jupiterBis.name = 'Jupiter Bis';
 
-      assert.notEqual(jupiter.$source, jupiterBis.$source);
+      assert.notEqual(jupiter.$store, jupiterBis.$store);
       assert.equal(
-        jupiter.$source,
-        jupiterBis.$source.base,
-        'record source should be forked'
+        jupiter.$store,
+        jupiterBis.$store.base,
+        'record store should be forked'
       );
       assert.equal(
         jupiterBis,
         jupiterBis.draft(),
-        'record source should be forked only once'
+        'record store should be forked only once'
       );
       assert.notEqual(jupiter, jupiterBis);
       assert.equal(jupiter.name, 'Jupiter');
@@ -430,12 +430,12 @@ module('Integration - Model', function(hooks) {
   });
 
   module('ModelClass', function() {
-    test('#record / #records', async function(assert) {
+    test('#records() / #records.find()', async function(assert) {
       const jupiter = await store.records<Planet>('planet').add({
         name: 'Jupiter'
       });
 
-      const planet: Planet = await Planet.record({ id: jupiter.id });
+      const planet: Planet = await Planet.records().find({ id: jupiter.id });
       assert.equal(jupiter, planet);
 
       const planets: Planet[] = await Planet.records();

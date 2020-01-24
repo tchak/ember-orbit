@@ -1,12 +1,13 @@
 import { RecordIdentity, FindRecord, cloneRecordIdentity } from '@orbit/data';
 
+import Store from '../store';
+import Model from '../model';
 import { BaseQueryOrTransformBuilder } from './base';
 import {
   sourceQuery,
   cacheQuery,
   peekRecordMeta,
   peekRecordLinks,
-  QueryableAndTransfomableSource,
   peekRecordAttribute,
   peekRecord
 } from '../cache';
@@ -17,23 +18,12 @@ import normalizeRecordProperties, {
 import { mergeOptions } from './utils';
 import { BatchQueryBuilder } from './batch';
 
-export function findRecord<T extends RecordIdentity>(
-  identifier: RecordIdentity,
-  source: QueryableAndTransfomableSource
-) {
-  return new FindRecordQueryOrTransformBuilder<T>(source, identifier);
-}
-
-export class FindRecordQueryOrTransformBuilder<T extends RecordIdentity>
+export class FindRecordQueryOrTransformBuilder<T extends Model>
   extends BaseQueryOrTransformBuilder
   implements PromiseLike<T> {
   expression: FindRecord;
 
-  constructor(
-    source: QueryableAndTransfomableSource,
-    record: RecordIdentity,
-    options?: object
-  ) {
+  constructor(source: Store, record: RecordIdentity, options?: object) {
     const expression: FindRecord = {
       op: 'findRecord',
       record: cloneRecordIdentity(record)
@@ -70,7 +60,7 @@ export class FindRecordQueryOrTransformBuilder<T extends RecordIdentity>
     ) as Promise<T>;
   }
 
-  merge<K extends RecordIdentity = T>(
+  merge<K extends Model = T>(
     ...queryBuilders: BaseQueryOrTransformBuilder[]
   ): BatchQueryBuilder<T | K> {
     return BatchQueryBuilder.merge<T | K>(this, ...queryBuilders);
