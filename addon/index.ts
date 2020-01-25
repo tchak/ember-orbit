@@ -6,6 +6,7 @@ export {
   default as Schema,
   SchemaInjections as SchemaSettings
 } from './services/schema';
+export { default as Service } from './services/store';
 
 export { default as Store, StoreSettings, StoreConfig } from './-private/store';
 export {
