@@ -37,5 +37,5 @@ export function createStore(options) {
     });
   }
 
-  return owner.lookup('service:store').service as Store;
+  return owner.lookup('service:store').source as Store;
 }

@@ -40,7 +40,7 @@ module('Integration - Config', function(hooks) {
 
   test('registrations respect config', async function(assert) {
     assert.equal(
-      owner.lookup('service:store'),
+      owner.lookup('service:store').source,
       store,
       'store service registration is named from configuration'
     );
