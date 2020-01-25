@@ -29,12 +29,12 @@ export class RecordIdentitySerializer<T extends RecordIdentity>
   }
 }
 
-export default class IdentityMap<T extends Model> extends OrbitIdentityMap<
+export default class IdentityMap extends OrbitIdentityMap<
   RecordIdentity,
-  T
+  Model
 > {
   private _patchListener: () => void;
-  private _liveArrays: Set<LiveArray<T>>;
+  private _liveArrays: Set<LiveArray<Model>>;
 
   source: Store;
 
@@ -43,38 +43,26 @@ export default class IdentityMap<T extends Model> extends OrbitIdentityMap<
   }
 
   constructor(source: Store) {
-    const serializer = new RecordIdentitySerializer<T>();
+    const serializer = new RecordIdentitySerializer<Model>();
     super({ serializer });
 
     this.source = source;
     this._patchListener = this.cache.on('patch', generatePatchListener(this));
     this._liveArrays = new Set();
-
-    identityMapCache.set(this.cache, this);
   }
 
-  static for<T extends Model>(cache: SyncRecordCache): IdentityMap<T> {
-    const identityMap = identityMapCache.get(cache);
-
-    if (!identityMap) {
-      throw new Error(`IdentityMap for ${cache} is not initialized.`);
-    }
-
-    return identityMap as IdentityMap<T>;
-  }
-
-  lookup(result: QueryResult, n = 1): LookupResult<T> {
+  lookup<T extends Model>(result: QueryResult, n = 1): LookupResult<T> {
     if (isQueryResultData(result, n)) {
       return (result as QueryResultData[]).map(result =>
         lookupQueryResultData(this, result)
       );
     } else {
-      return lookupQueryResultData(this, result);
+      return lookupQueryResultData<T>(this, result);
     }
   }
 
-  lookupLiveQuery(liveQuery: SyncLiveQuery): LiveArray<T> {
-    const liveArray = new LiveArray<T>(liveQuery);
+  lookupLiveQuery<T extends Model>(liveQuery: SyncLiveQuery): LiveArray<T> {
+    const liveArray = new LiveArray<T>(this.source, liveQuery);
 
     liveArray.subscribe();
     this._liveArrays.add(liveArray);
@@ -107,8 +95,6 @@ export default class IdentityMap<T extends Model> extends OrbitIdentityMap<
       liveArray.unsubscribe();
     }
     this._liveArrays.clear();
-
-    identityMapCache.delete(this.cache);
   }
 }
 
@@ -116,7 +102,7 @@ export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
 export type LookupCacheResult<T> = LookupResult<T> | undefined;
 
 function lookupQueryResultData<T extends Model>(
-  identityMap: IdentityMap<T>,
+  identityMap: IdentityMap,
   result: QueryResultData
 ): T | T[] | null {
   if (Array.isArray(result)) {
@@ -130,7 +116,7 @@ function lookupQueryResultData<T extends Model>(
 
     return records;
   } else if (result) {
-    let record: T = identityMap.get(result);
+    let record: T = identityMap.get(result) as T;
 
     if (!record) {
       record = Store.modelFor<T>(identityMap.source, result);
@@ -143,8 +129,8 @@ function lookupQueryResultData<T extends Model>(
   return null;
 }
 
-function generatePatchListener<T extends Model>(
-  identityMap: IdentityMap<T>
+function generatePatchListener(
+  identityMap: IdentityMap
 ): (operation: RecordOperation) => void {
   return (operation: RecordOperation) => {
     const record = operation.record as OrbitRecord;
@@ -177,8 +163,8 @@ function generatePatchListener<T extends Model>(
   };
 }
 
-function notifyPropertyChange<T extends Model>(
-  identityMap: IdentityMap<T>,
+function notifyPropertyChange(
+  identityMap: IdentityMap,
   identifier: RecordIdentity,
   property: string
 ) {
@@ -199,5 +185,3 @@ function isQueryResultData(
 ): _result is QueryResultData[] {
   return expressions > 1;
 }
-
-const identityMapCache = new WeakMap<SyncRecordCache, IdentityMap<Model>>();

@@ -20,7 +20,6 @@ import {
   peekRelationLinks,
   peekRelatedRecords
 } from '../cache';
-import IdentityMap from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,
@@ -94,7 +93,7 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<T extends Model>
       this.toQueryExpression(),
       this.options
     ) as RecordIdentity[];
-    const identityMap = IdentityMap.for<T>(this.source.cache);
+    const identityMap = this.source.identityMap;
 
     for (let record of identifiers) {
       identityMap.unload(record);
@@ -134,7 +133,7 @@ export class FilteredFindRelatedRecordsQueryOrTransformBuilder<T extends Model>
 
   peek(): T[] {
     return cacheQuery<T>(
-      this.source.cache,
+      this.source,
       this.toQueryExpression(),
       this.options
     ) as T[];
@@ -209,11 +208,7 @@ export class LiveFindRelatedRecordsQueryBuilder<T extends Model>
   }
 
   peek(): LiveArray<T> {
-    return liveQuery<T>(
-      this.source.cache,
-      this.toQueryExpression(),
-      this.options
-    );
+    return liveQuery<T>(this.source, this.toQueryExpression(), this.options);
   }
 
   then<K = LiveArray<T>>(
@@ -276,7 +271,7 @@ export class FindRelatedRecordsQueryOrTransformBuilder<
       this.expression.relationship
     );
     if (record) {
-      return IdentityMap.for<T>(this.source.cache).lookup(record) as T[];
+      return this.source.identityMap.lookup<T>(record) as T[];
     }
     return record;
   }

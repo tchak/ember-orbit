@@ -13,7 +13,6 @@ import Store from '../store';
 import Model from '../model';
 import { BaseQueryOrTransformBuilder } from './base';
 import { sourceQuery, cacheQuery, liveQuery } from '../cache';
-import IdentityMap from '../identity-map';
 import {
   mergeOptions,
   sortParamToSpecifier,
@@ -90,7 +89,7 @@ export class FilteredFindRecordsQueryOrTransformBuilder<T extends Model>
       this.toQueryExpression(),
       this.options
     ) as RecordIdentity[];
-    const identityMap = IdentityMap.for<T>(this.source.cache);
+    const identityMap = this.source.identityMap;
 
     for (let record of identifiers) {
       identityMap.unload(record);
@@ -130,7 +129,7 @@ export class FilteredFindRecordsQueryOrTransformBuilder<T extends Model>
 
   peek(): T[] {
     return cacheQuery<T>(
-      this.source.cache,
+      this.source,
       this.toQueryExpression(),
       this.options
     ) as T[];
@@ -205,11 +204,7 @@ export class LiveFindRecordsQueryBuilder<T extends Model>
   }
 
   peek(): LiveArray<T> {
-    return liveQuery<T>(
-      this.source.cache,
-      this.toQueryExpression(),
-      this.options
-    );
+    return liveQuery<T>(this.source, this.toQueryExpression(), this.options);
   }
 
   then<K = LiveArray<T>>(
@@ -262,14 +257,14 @@ export class FindRecordsQueryOrTransformBuilder<
     );
   }
 
-  has(identifier: Identifier) {
+  has(identifier: Identifier): boolean {
     return !!this.source.cache.getRecordSync({
       ...identifier,
       type: this.expression.type as string
     });
   }
 
-  async add(properties: Properties = {}, options?: object) {
+  async add(properties: Properties = {}, options?: object): Promise<T> {
     properties.type = this.expression.type;
     const record = normalizeRecordProperties(this.source.schema, properties);
 
@@ -278,6 +273,6 @@ export class FindRecordsQueryOrTransformBuilder<
       mergeOptions(this.options, options)
     );
 
-    return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
+    return this.source.identityMap.lookup<T>(record) as T;
   }
 }

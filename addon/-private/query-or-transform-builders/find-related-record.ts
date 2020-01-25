@@ -13,7 +13,6 @@ import {
   peekRelationLinks,
   peekRelatedRecord
 } from '../cache';
-import IdentityMap from '../identity-map';
 import { BaseQueryOrTransformBuilder } from './base';
 import { mergeOptions } from './utils';
 import { BatchQueryBuilder } from './batch';
@@ -41,7 +40,7 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends Model>
 
   peek(): T {
     return cacheQuery<T>(
-      this.source.cache,
+      this.source,
       this.toQueryExpression(),
       this.options
     ) as T;
@@ -79,7 +78,7 @@ export class FindRelatedRecordQueryOrTransformBuilder<T extends Model>
       this.expression.relationship
     );
     if (record) {
-      return IdentityMap.for<T>(this.source.cache).lookup(record) as T | null;
+      return this.source.identityMap.lookup<T>(record) as T | null;
     }
     return record;
   }

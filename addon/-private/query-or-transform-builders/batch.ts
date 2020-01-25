@@ -24,11 +24,7 @@ export class BatchQueryBuilder<T extends Model>
   }
 
   peek(): LookupResult<T> {
-    return cacheQuery<T>(
-      this.source.cache,
-      this.toQueryExpressions(),
-      this.options
-    );
+    return cacheQuery<T>(this.source, this.toQueryExpressions(), this.options);
   }
 
   then<K = LookupResult<T>>(

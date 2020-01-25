@@ -9,34 +9,43 @@ import { SyncRecordCache } from '@orbit/record-cache';
 
 import Store from './store';
 import Model from './model';
-import IdentityMap from './identity-map';
 import LiveArray, { SyncLiveQuery } from './live-array';
 
 export type LookupResult<T> = T | T[] | null | (T | T[] | null)[];
 
 export function cacheQuery<T extends Model>(
-  cache: SyncRecordCache,
+  source: Store,
   queryOrExpressions: QueryOrExpressions,
   options?: object,
   id?: string
 ): LookupResult<T> {
-  const query = buildQuery(queryOrExpressions, options, id, cache.queryBuilder);
-  const result = cache.query(query);
+  const query = buildQuery(
+    queryOrExpressions,
+    options,
+    id,
+    source.cache.queryBuilder
+  );
+  const result = source.cache.query(query);
 
-  return IdentityMap.for<T>(cache).lookup(result, query.expressions.length);
+  return source.identityMap.lookup<T>(result, query.expressions.length);
 }
 
 export function liveQuery<T extends Model>(
-  cache: SyncRecordCache,
+  source: Store,
   queryOrExpressions: QueryOrExpressions,
   options?: object,
   id?: string
 ): LiveArray<T> {
-  const query = buildQuery(queryOrExpressions, options, id, cache.queryBuilder);
+  const query = buildQuery(
+    queryOrExpressions,
+    options,
+    id,
+    source.cache.queryBuilder
+  );
 
-  const liveQuery = new SyncLiveQuery({ cache, query });
+  const liveQuery = new SyncLiveQuery({ cache: source.cache, query });
 
-  return IdentityMap.for<T>(cache).lookupLiveQuery(liveQuery);
+  return source.identityMap.lookupLiveQuery<T>(liveQuery);
 }
 
 export async function sourceQuery<T extends Model>(
@@ -53,10 +62,7 @@ export async function sourceQuery<T extends Model>(
   );
   const result = await source.query(query, options);
 
-  return IdentityMap.for<T>(source.cache).lookup(
-    result,
-    query.expressions.length
-  );
+  return source.identityMap.lookup<T>(result, query.expressions.length);
 }
 
 export function has(

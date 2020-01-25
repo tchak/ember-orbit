@@ -2,6 +2,7 @@ import { notifyPropertyChange } from '@ember/object';
 
 import { RecordIdentity, recordsInclude } from '@orbit/data';
 
+import Store from './store';
 import Model from './model';
 import { cacheQuery } from './cache';
 
@@ -13,18 +14,17 @@ export { SyncLiveQuery };
 
 export default class LiveArray<T extends Model>
   implements Iterable<T>, AsyncIterable<LiveArray<T>> {
-  liveQuery: SyncLiveQuery;
+  private liveQuery: SyncLiveQuery;
+  private store: Store;
 
-  constructor(liveQuery: SyncLiveQuery) {
+  constructor(store: Store, liveQuery: SyncLiveQuery) {
     this.liveQuery = liveQuery;
+    this.store = store;
   }
 
   [Symbol.iterator]() {
     try {
-      const records = cacheQuery<T>(
-        this.liveQuery.cache,
-        this.liveQuery.query
-      ) as T[];
+      const records = cacheQuery<T>(this.store, this.liveQuery.query) as T[];
       return records[Symbol.iterator]();
     } catch {
       return [][Symbol.iterator]();

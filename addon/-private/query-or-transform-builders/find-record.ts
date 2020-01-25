@@ -1,4 +1,9 @@
-import { RecordIdentity, FindRecord, cloneRecordIdentity } from '@orbit/data';
+import {
+  RecordIdentity,
+  FindRecord,
+  cloneRecordIdentity,
+  Record as OrbitRecord
+} from '@orbit/data';
 
 import Store from '../store';
 import Model from '../model';
@@ -11,7 +16,6 @@ import {
   peekRecordAttribute,
   peekRecord
 } from '../cache';
-import IdentityMap from '../identity-map';
 import normalizeRecordProperties, {
   Properties
 } from '../utils/normalize-record-properties';
@@ -35,7 +39,7 @@ export class FindRecordQueryOrTransformBuilder<T extends Model>
 
   peek(): T {
     return cacheQuery<T>(
-      this.source.cache,
+      this.source,
       this.toQueryExpression(),
       this.options
     ) as T;
@@ -67,11 +71,15 @@ export class FindRecordQueryOrTransformBuilder<T extends Model>
   }
 
   value(): T | undefined {
-    const record = peekRecord(this.source.cache, this.expression.record);
+    const record = this.raw();
     if (record) {
-      return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
+      return this.source.identityMap.lookup(record) as T;
     }
     return record;
+  }
+
+  raw(): OrbitRecord | undefined {
+    return peekRecord(this.source.cache, this.expression.record);
   }
 
   attribute<T = unknown>(attribute: string): T {
@@ -108,10 +116,10 @@ export class FindRecordQueryOrTransformBuilder<T extends Model>
       mergeOptions(this.options, options)
     );
 
-    return IdentityMap.for<T>(this.source.cache).lookup(record) as T;
+    return this.source.identityMap.lookup<T>(record) as T;
   }
 
   unload(): void {
-    IdentityMap.for<T>(this.source.cache).unload(this.expression.record);
+    this.source.identityMap.unload(this.expression.record);
   }
 }
